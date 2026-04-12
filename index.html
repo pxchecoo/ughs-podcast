@@ -1377,7 +1377,7 @@
       </div>
 
       <div class="episodes-grid">
-        <article class="episode-card reveal active" data-id="1" data-title="Vida estudiantil" data-tag="Vida escolar" data-duration="12 min" data-youtube="https://www.youtube.com/watch?v=VXszd0PKtSc&pp=ygUNamhheSB3aGVlbGVycw%3D%3D" data-desc="Hablamos sobre las experiencias reales dentro de la escuela, la rutina académica, el ambiente estudiantil y lo que significa ser parte de University Gardens." data-icon="graduation">
+        <article class="episode-card reveal active" data-id="1" data-title="Vida estudiantil" data-tag="Vida escolar" data-duration="12 min" data-youtube="https://www.youtube.com" data-desc="..." data-icon="graduation">
           <div class="episode-head">
             <div class="episode-type">Vida escolar</div>
             <div class="episode-duration">12 min</div>
@@ -1392,7 +1392,7 @@
           </div>
         </article>
 
-        <article class="episode-card reveal" data-id="2" data-title="Moderadores y matrícula escolar" data-tag="Comunidad escolar" data-duration="10 min" data-youtube="https://www.youtube.com/watch?v=VXszd0PKtSc&pp=ygUNamhheSB3aGVlbGVycw%3D%3D" data-desc="Un episodio dedicado a hablar sobre el rol de los moderadores dentro del proyecto y la importancia de la matrícula escolar en University Gardens." data-icon="graduation">
+        <article class="episode-card reveal" data-id="2" data-title="Moderadores y matrícula escolar" data-tag="Comunidad escolar" data-duration="10 min" data-youtube="https://www.youtube.com" data-desc="..." data-icon="graduation">
           <div class="episode-head">
             <div class="episode-type">Escuela</div>
             <div class="episode-duration">40 min</div>
@@ -1407,7 +1407,7 @@
           </div>
         </article>
 
-        <article class="episode-card reveal" data-id="3" data-title="Programas de verano" data-tag="Oportunidades" data-duration="14 min" ddata-youtube="https://www.youtube.com/watch?v=VXszd0PKtSc&pp=ygUNamhheSB3aGVlbGVycw%3D%3D" data-desc="Conversaciones sobre programas de verano, oportunidades de crecimiento y experiencias que ayudan a los estudiantes a seguir desarrollándose dentro y fuera de la escuela." data-icon="sun">
+        <article class="episode-card reveal" data-id="3" data-title="Programas de verano" data-tag="Oportunidades" data-duration="14 min" data-youtube="https://www.youtube.com" data-desc="..." data-icon="sun">
           <div class="episode-head">
             <div class="episode-type">Oportunidades</div>
             <div class="episode-duration">14 min</div>
@@ -1671,18 +1671,29 @@
     }
 
     cards.forEach(card => {
-      card.addEventListener('click', (e) => {
-        const sameCard = card.dataset.id === activeId;
-        if (sameCard) {
-          togglePlay();
-          return;
-        }
-        setEpisode(card, true);
-      });
-    });
+  card.addEventListener('click', (e) => {
+    // Si clickeó el botón de play, ir a YouTube
+    if (e.target.closest('.mini-play')) {
+      const url = card.dataset.youtube;
+      if (url) window.open(url, '_blank');
+      return;
+    }
+    const sameCard = card.dataset.id === activeId;
+    if (sameCard) return;
+    setEpisode(card, false);
+  });
+});
 
-    heroPlayBtn.addEventListener('click', togglePlay);
-    dockPlayBtn.addEventListener('click', togglePlay);
+    heroPlayBtn.addEventListener('click', () => {
+  const activeCard = cards.find(c => c.dataset.id === activeId);
+  const url = activeCard?.dataset.youtube;
+  if (url) window.open(url, '_blank');
+});
+    dockPlayBtn.addEventListener('click', () => {
+  const activeCard = cards.find(c => c.dataset.id === activeId);
+  const url = activeCard?.dataset.youtube;
+  if (url) window.open(url, '_blank');
+});
 
     audio.addEventListener('loadedmetadata', () => {
       durationTimeEl.textContent = formatTime(audio.duration);
