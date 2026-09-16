@@ -4,6 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>University en Vivo — University Gardens</title>
+  <style>html.site-status-pending body { visibility: hidden; }</style>
+  <script>
+    document.documentElement.classList.add('site-status-pending');
+    window.__siteStatusPromise = (() => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000);
+      const publicSiteHosts = new Set(['universityenvivo.com', 'www.universityenvivo.com']);
+      const statusEndpoint = publicSiteHosts.has(window.location.hostname)
+        ? 'https://ughs-podcast.vercel.app/api/site-status'
+        : '/api/site-status';
+
+      return fetch(statusEndpoint, {
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal
+      })
+        .then(response => response.ok ? response.json() : Promise.reject())
+        .then(status => status?.comingSoon === true)
+        .catch(() => false)
+        .finally(() => clearTimeout(timeout));
+    })();
+  </script>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-LRKB0PFQE4"></script>
   <script>
@@ -55,6 +77,100 @@
 
     a { color: inherit; text-decoration: none; }
     button { font: inherit; }
+
+    [hidden] { display: none !important; }
+
+    .coming-soon {
+      position: relative;
+      width: 100vw;
+      min-height: 100vh;
+      min-height: 100svh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      padding: clamp(24px, 7vw, 72px);
+      isolation: isolate;
+      background:
+        radial-gradient(circle at 14% 16%, rgba(233, 142, 152, 0.25), transparent 34%),
+        radial-gradient(circle at 86% 22%, rgba(243, 178, 183, 0.3), transparent 32%),
+        radial-gradient(circle at 50% 100%, rgba(255, 221, 225, 0.58), transparent 44%),
+        linear-gradient(180deg, #fff8f8 0%, #fffefe 45%, #fff5f6 100%);
+    }
+
+    .coming-soon::before,
+    .coming-soon::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: min(62vw, 620px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      filter: blur(18px);
+      opacity: .72;
+    }
+
+    .coming-soon::before {
+      top: -28%;
+      left: -16%;
+      background: radial-gradient(circle, rgba(243, 178, 183, .42), transparent 66%);
+    }
+
+    .coming-soon::after {
+      right: -18%;
+      bottom: -34%;
+      background: radial-gradient(circle, rgba(233, 142, 152, .3), transparent 65%);
+    }
+
+    .coming-soon-card {
+      width: min(100%, 720px);
+      padding: clamp(38px, 8vw, 78px) clamp(24px, 8vw, 72px);
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, .84);
+      border-radius: clamp(26px, 5vw, 38px);
+      background: linear-gradient(180deg, rgba(255, 255, 255, .76), rgba(255, 255, 255, .53));
+      box-shadow: 0 28px 80px rgba(184, 92, 104, .14);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      animation: comingSoonReveal .75s var(--ease) both;
+    }
+
+    .coming-soon-mark {
+      width: 64px;
+      height: 64px;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 28px;
+      color: #c96b76;
+      border: 1px solid rgba(233, 142, 152, .2);
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(255,239,241,.9));
+      box-shadow: 0 14px 34px rgba(184, 92, 104, .13);
+    }
+
+    .coming-soon-mark svg { width: 27px; height: 27px; }
+
+    .coming-soon-brand {
+      margin: 0;
+      color: #8f5860;
+      font-size: clamp(.72rem, 2vw, .82rem);
+      font-weight: 800;
+      letter-spacing: .18em;
+    }
+
+    .coming-soon h1 {
+      margin: 18px 0 0;
+      font-size: clamp(2.45rem, 9vw, 5.35rem);
+      line-height: .98;
+      letter-spacing: -.065em;
+    }
+
+    .coming-soon h2 {
+      margin: 19px 0 0;
+      color: #c96b76;
+      font-size: clamp(1.7rem, 5vw, 2.65rem);
+      line-height: 1.05;
+      letter-spacing: -.045em;
+    }
 
     .noise,
     .glow,
@@ -1168,6 +1284,15 @@
       50% { transform: scale(1.35); opacity: 1; }
     }
 
+    @keyframes comingSoonReveal {
+      from { opacity: 0; transform: translateY(14px) scale(.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .coming-soon-card { animation: none; }
+    }
+
     @media (max-width: 1080px) {
       .hero { grid-template-columns: 1fr; gap: 22px; min-height: auto; padding-top: 14px; }
       .hero-copy { order: 1; }
@@ -1231,6 +1356,23 @@
   </style>
 </head>
 <body>
+  <main class="coming-soon" id="comingSoon" aria-labelledby="comingSoonTitle" hidden>
+    <div class="coming-soon-card">
+      <div class="coming-soon-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3v13"></path>
+          <path d="M18 9a6 6 0 0 1-12 0"></path>
+          <path d="M8 21h8"></path>
+          <path d="M12 17v4"></path>
+        </svg>
+      </div>
+      <p class="coming-soon-brand">UNIVERSITY EN VIVO</p>
+      <h1 id="comingSoonTitle">Coming Soon</h1>
+      <h2>Próximamente.</h2>
+    </div>
+  </main>
+
+  <div id="publicSite">
   <div class="noise"></div>
   <div class="glow"></div>
   <div class="glow-2"></div>
@@ -1534,8 +1676,24 @@
   <audio id="mainAudio">
     <source src="https://samplelib.com/lib/preview/mp3/sample-3s.mp3" type="audio/mpeg" />
   </audio>
+  </div>
 
   <script>
+    window.__siteStatusPromise.then((comingSoon) => {
+      const comingSoonView = document.getElementById('comingSoon');
+      const publicSite = document.getElementById('publicSite');
+
+      if (comingSoon) {
+        document.title = 'Coming Soon — University en Vivo';
+        publicSite.hidden = true;
+        comingSoonView.hidden = false;
+        document.documentElement.classList.remove('site-status-pending');
+        return;
+      }
+
+      publicSite.hidden = false;
+      document.documentElement.classList.remove('site-status-pending');
+
     const menuBtn = document.getElementById('menuBtn');
     const menuIcon = document.getElementById('menuIcon');
     const mobileMenu = document.getElementById('mobileMenu');
@@ -2088,6 +2246,8 @@ integrantes.forEach(el => {
     });
   }
 });
+
+    });
 
   </script>
 </body>

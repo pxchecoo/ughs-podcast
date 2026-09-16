@@ -11,6 +11,7 @@ import {
 } from "../api/_session.js";
 import { createLoginHandler } from "../api/login.js";
 import { createLogoutHandler } from "../api/logout.js";
+import { createSessionHandler } from "../api/session.js";
 
 const allowedOrigin = "https://universityenvivo.com";
 
@@ -48,7 +49,9 @@ test("creates and validates a stateless signed session", async () => {
 test("rejects a session token with a modified signature", async () => {
   const secret = randomBytes(48).toString("base64url");
   const session = await createAdminSession({ secret });
-  const tamperedToken = `${session.token.slice(0, -1)}${session.token.endsWith("A") ? "B" : "A"}`;
+  const [sessionId, expiresAt, signature] = session.token.split(".");
+  const tamperedSignature = `${signature.startsWith("A") ? "B" : "A"}${signature.slice(1)}`;
+  const tamperedToken = `${sessionId}.${expiresAt}.${tamperedSignature}`;
 
   assert.equal(await validateAdminSession(tamperedToken, { secret }), null);
 });
@@ -81,6 +84,35 @@ test("authorization accepts only a validated session cookie", async () => {
     { validateSession: async () => ({ expiresAt: Date.now() + 60_000 }) },
   );
   assert.equal(denied.status, 401);
+});
+
+test("session endpoint reports authenticated state without exposing session data", async () => {
+  const handler = createSessionHandler({
+    authorize: async () => ({ authorized: true, session: { expiresAt: 123 } }),
+  });
+  const response = await handler.fetch(
+    new Request("https://universityenvivo.com/api/session"),
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { authenticated: true });
+});
+
+test("session endpoint denies unauthenticated requests", async () => {
+  const handler = createSessionHandler({
+    authorize: async () => ({
+      authorized: false,
+      status: 401,
+      code: "UNAUTHORIZED",
+      message: "Authentication is required.",
+    }),
+  });
+  const response = await handler.fetch(
+    new Request("https://universityenvivo.com/api/session"),
+  );
+
+  assert.equal(response.status, 401);
+  assert.equal((await response.json()).error.code, "UNAUTHORIZED");
 });
 
 test("login returns a secure cookie without exposing credentials", async (context) => {

@@ -7,6 +7,10 @@ const loginStatus = document.getElementById("login-status");
 const dashboardMessage = document.getElementById("dashboard-message");
 const refreshButton = document.getElementById("refresh-button");
 const logoutButton = document.getElementById("logout-button");
+const comingSoonToggle = document.getElementById("coming-soon-toggle");
+const comingSoonLabel = document.getElementById("coming-soon-label");
+const siteVisibility = document.getElementById("site-visibility");
+const siteStatusMessage = document.getElementById("site-status-message");
 const numberFormatter = new Intl.NumberFormat("es-PR");
 
 async function apiRequest(path, options = {}) {
@@ -33,6 +37,7 @@ async function apiRequest(path, options = {}) {
 function showLogin(message = "") {
   dashboardView.hidden = true;
   loginView.hidden = false;
+  comingSoonToggle.disabled = true;
   loginStatus.textContent = message;
   passwordInput.focus();
 }
@@ -45,6 +50,36 @@ function showDashboard() {
 
 function metric(id, value) {
   document.getElementById(id).textContent = numberFormatter.format(value ?? 0);
+}
+
+function renderSiteStatus(comingSoon) {
+  comingSoonToggle.checked = comingSoon;
+  comingSoonLabel.textContent = comingSoon ? "ON" : "OFF";
+  siteVisibility.textContent = comingSoon
+    ? "🟡 Coming Soon activo"
+    : "🟢 Sitio público";
+}
+
+async function loadSiteStatus() {
+  comingSoonToggle.disabled = true;
+  siteStatusMessage.classList.remove("error");
+  siteStatusMessage.textContent = "";
+
+  try {
+    const { response, body } = await apiRequest("/api/site-status");
+    if (!response.ok || typeof body?.comingSoon !== "boolean") {
+      throw new Error("site-status-unavailable");
+    }
+
+    renderSiteStatus(body.comingSoon);
+    if (!dashboardView.hidden) comingSoonToggle.disabled = false;
+    return true;
+  } catch {
+    siteVisibility.textContent = "Estado no disponible";
+    siteStatusMessage.classList.add("error");
+    siteStatusMessage.textContent = "No fue posible consultar el estado del sitio.";
+    return false;
+  }
 }
 
 function svgElement(name, attributes = {}) {
@@ -276,6 +311,28 @@ async function loadAnalytics({ showUnauthorizedMessage = false } = {}) {
   }
 }
 
+async function loadDashboard({ showUnauthorizedMessage = false } = {}) {
+  try {
+    const { response, body } = await apiRequest("/api/session");
+
+    if (response.status === 401 || response.status === 403) {
+      showLogin(showUnauthorizedMessage ? "Tu sesión terminó. Inicia sesión nuevamente." : "");
+      return false;
+    }
+
+    if (!response.ok || body?.authenticated !== true) {
+      throw new Error("session-unavailable");
+    }
+
+    showDashboard();
+    await Promise.all([loadAnalytics({ showUnauthorizedMessage: true }), loadSiteStatus()]);
+    return true;
+  } catch {
+    showLogin("No fue posible comprobar la sesión de administrador.");
+    return false;
+  }
+}
+
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const password = passwordInput.value;
@@ -297,7 +354,7 @@ loginForm.addEventListener("submit", async (event) => {
     passwordInput.value = "";
 
     if (response.ok) {
-      await loadAnalytics();
+      await loadDashboard({ showUnauthorizedMessage: true });
     } else if (response.status === 429) {
       loginStatus.textContent = "Demasiados intentos. Espera antes de intentarlo nuevamente.";
     } else if (response.status === 401) {
@@ -323,7 +380,46 @@ document.getElementById("toggle-password").addEventListener("click", () => {
   );
 });
 
-refreshButton.addEventListener("click", () => loadAnalytics({ showUnauthorizedMessage: true }));
+refreshButton.addEventListener("click", () => {
+  loadAnalytics({ showUnauthorizedMessage: true });
+  loadSiteStatus();
+});
+
+comingSoonToggle.addEventListener("change", async () => {
+  const previousValue = !comingSoonToggle.checked;
+  const requestedValue = comingSoonToggle.checked;
+  renderSiteStatus(previousValue);
+  comingSoonToggle.disabled = true;
+  siteStatusMessage.classList.remove("error");
+  siteStatusMessage.textContent = "Guardando…";
+
+  try {
+    const { response, body } = await apiRequest("/api/site-status", {
+      method: "POST",
+      body: JSON.stringify({ comingSoon: requestedValue }),
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      showLogin("Tu sesión terminó. Inicia sesión nuevamente.");
+      return;
+    }
+
+    if (!response.ok || typeof body?.comingSoon !== "boolean") {
+      throw new Error("site-status-update-failed");
+    }
+
+    renderSiteStatus(body.comingSoon);
+    siteStatusMessage.textContent = body.comingSoon
+      ? "Modo Coming Soon activado"
+      : "Modo Coming Soon desactivado";
+  } catch {
+    renderSiteStatus(previousValue);
+    siteStatusMessage.classList.add("error");
+    siteStatusMessage.textContent = "No fue posible cambiar el modo Coming Soon.";
+  } finally {
+    if (!dashboardView.hidden) comingSoonToggle.disabled = false;
+  }
+});
 
 logoutButton.addEventListener("click", async () => {
   logoutButton.disabled = true;
@@ -335,4 +431,4 @@ logoutButton.addEventListener("click", async () => {
   }
 });
 
-loadAnalytics();
+loadDashboard();

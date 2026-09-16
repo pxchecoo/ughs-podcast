@@ -77,6 +77,26 @@
 
         <p class="dashboard-message" id="dashboard-message" aria-live="polite"></p>
 
+        <article class="panel site-status-panel" aria-labelledby="site-status-title">
+          <div class="site-status-copy">
+            <p class="panel-kicker">Control de publicación</p>
+            <h3 id="site-status-title">Estado del sitio</h3>
+            <p class="site-visibility" id="site-visibility">Consultando estado…</p>
+            <p class="site-status-description" id="site-status-description">
+              Cuando este modo está activado, los visitantes solamente podrán ver la pantalla “Coming Soon”.
+            </p>
+            <p class="site-status-message" id="site-status-message" aria-live="polite"></p>
+          </div>
+          <label class="switch-control" for="coming-soon-toggle">
+            <span>Modo Coming Soon</span>
+            <span class="switch-row">
+              <input id="coming-soon-toggle" type="checkbox" role="switch" aria-describedby="site-status-description" disabled />
+              <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+              <strong id="coming-soon-label">OFF</strong>
+            </span>
+          </label>
+        </article>
+
         <div class="metrics-grid">
           <article class="metric-card realtime-card">
             <div class="metric-label"><span class="live-dot"></span>Usuarios activos ahora</div>
