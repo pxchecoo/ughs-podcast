@@ -65,8 +65,11 @@ async function loadSiteStatus() {
   siteStatusMessage.classList.remove("error");
   siteStatusMessage.textContent = "";
 
+  let response;
+  let body;
+
   try {
-    const { response, body } = await apiRequest("/api/site-status");
+    ({ response, body } = await apiRequest("/api/site-status"));
     if (!response.ok || typeof body?.comingSoon !== "boolean") {
       throw new Error("site-status-unavailable");
     }
@@ -74,7 +77,11 @@ async function loadSiteStatus() {
     renderSiteStatus(body.comingSoon);
     if (!dashboardView.hidden) comingSoonToggle.disabled = false;
     return true;
-  } catch {
+  } catch (error) {
+    console.error("No fue posible consultar el estado del sitio.", {
+      status: response?.status ?? null,
+      code: body?.error?.code ?? error?.message ?? "UNKNOWN_ERROR",
+    });
     siteVisibility.textContent = "Estado no disponible";
     siteStatusMessage.classList.add("error");
     siteStatusMessage.textContent = "No fue posible consultar el estado del sitio.";
