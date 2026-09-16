@@ -1,11 +1,29 @@
+import { createPrivateKey } from "node:crypto";
 import { BetaAnalyticsDataClient } from "@google-analytics/data";
 
 let analyticsClient;
 
+function normalizeEnvString(value) {
+  let normalized = String(value ?? "").trim();
+
+  if (normalized.startsWith('"') && normalized.endsWith('"')) {
+    try {
+      const parsed = JSON.parse(normalized);
+      if (typeof parsed === "string") normalized = parsed;
+    } catch {
+      normalized = normalized.slice(1, -1);
+    }
+  } else if (normalized.startsWith("'") && normalized.endsWith("'")) {
+    normalized = normalized.slice(1, -1);
+  }
+
+  return normalized.trim();
+}
+
 function requireServerEnvironment() {
-  const propertyId = process.env.GA_PROPERTY_ID;
-  const clientEmail = process.env.GA_CLIENT_EMAIL;
-  const privateKey = process.env.GA_PRIVATE_KEY;
+  const propertyId = normalizeEnvString(process.env.GA_PROPERTY_ID);
+  const clientEmail = normalizeEnvString(process.env.GA_CLIENT_EMAIL);
+  const privateKey = normalizePrivateKey(process.env.GA_PRIVATE_KEY);
 
   if (!propertyId || !clientEmail || !privateKey) {
     const error = new Error("Analytics server configuration is incomplete.");
@@ -16,8 +34,22 @@ function requireServerEnvironment() {
   const normalizedPropertyId = propertyId.replace(/^properties\//, "");
 
   if (!/^\d+$/.test(normalizedPropertyId)) {
-    const error = new Error("Analytics server configuration is invalid.");
-    error.code = "ANALYTICS_CONFIG_ERROR";
+    const error = new Error("Analytics property ID is invalid.");
+    error.code = "ANALYTICS_PROPERTY_ID_INVALID";
+    throw error;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
+    const error = new Error("Analytics client email is invalid.");
+    error.code = "ANALYTICS_CLIENT_EMAIL_INVALID";
+    throw error;
+  }
+
+  try {
+    createPrivateKey({ key: privateKey, format: "pem" });
+  } catch {
+    const error = new Error("Analytics private key is invalid.");
+    error.code = "ANALYTICS_PRIVATE_KEY_INVALID";
     throw error;
   }
 
@@ -25,12 +57,45 @@ function requireServerEnvironment() {
     property: `properties/${normalizedPropertyId}`,
     credentials: {
       client_email: clientEmail,
-      private_key: normalizePrivateKey(privateKey),
+      private_key: privateKey,
     },
   };
 }
+
 export function normalizePrivateKey(privateKey) {
-  return privateKey.replace(/\\n/g, "\n");
+  let normalized = String(privateKey ?? "").trim();
+
+  // Accept the exact JSON field value, a quoted JSON string, or the whole
+  // service-account JSON object. This makes Vercel environment-variable
+  // copy/paste much less error-prone while keeping the credential server-side.
+  if (normalized.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(normalized);
+      if (typeof parsed?.private_key === "string") {
+        normalized = parsed.private_key;
+      }
+    } catch {
+      // Fall through and validate the raw value below.
+    }
+  } else if (normalized.startsWith('"') && normalized.endsWith('"')) {
+    try {
+      const parsed = JSON.parse(normalized);
+      if (typeof parsed === "string") normalized = parsed;
+    } catch {
+      normalized = normalized.slice(1, -1);
+    }
+  } else if (normalized.startsWith("'") && normalized.endsWith("'")) {
+    normalized = normalized.slice(1, -1);
+  }
+
+  normalized = normalized
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .trim();
+
+  return normalized ? `${normalized}\n` : "";
 }
 
 function getAnalyticsClient(credentials) {
