@@ -31,7 +31,7 @@ export function getSessionSecret() {
   }
 
   const error = new Error("Session signing is not configured.");
-  error.code = "AUTH_CONFIG_ERROR";
+  error.code = "AUTH_SESSION_SECRET_MISSING";
   throw error;
 }
 
