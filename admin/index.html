@@ -7,6 +7,7 @@
   <title>Analytics — University En Vivo</title>
   <link rel="icon" href="/assets/favicon.png" />
   <link rel="stylesheet" href="/admin/admin.css" />
+  <script src="/admin/host-redirect.js"></script>
   <script src="/admin/admin.js" defer></script>
 </head>
 <body>
@@ -82,93 +83,25 @@
             <strong id="active-now">—</strong>
             <p>Últimos 30 minutos</p>
           </article>
-          <article class="metric-card">
-            <div class="metric-label">Usuarios de hoy</div>
-            <strong id="users-today">—</strong>
-            <p>Usuarios activos</p>
-          </article>
-          <article class="metric-card">
-            <div class="metric-label">Vistas de hoy</div>
-            <strong id="views-today">—</strong>
-            <p>Páginas vistas</p>
-          </article>
-          <article class="metric-card">
-            <div class="metric-label">Usuarios · 7 días</div>
-            <strong id="users-7">—</strong>
-            <p>Última semana</p>
-          </article>
-          <article class="metric-card">
-            <div class="metric-label">Vistas · 7 días</div>
-            <strong id="views-7">—</strong>
-            <p>Última semana</p>
-          </article>
-          <article class="metric-card">
-            <div class="metric-label">Usuarios · 30 días</div>
-            <strong id="users-30">—</strong>
-            <p>Último mes</p>
-          </article>
-          <article class="metric-card">
-            <div class="metric-label">Vistas · 30 días</div>
-            <strong id="views-30">—</strong>
-            <p>Último mes</p>
-          </article>
+          <article class="metric-card"><div class="metric-label">Usuarios de hoy</div><strong id="users-today">—</strong><p>Usuarios activos</p></article>
+          <article class="metric-card"><div class="metric-label">Vistas de hoy</div><strong id="views-today">—</strong><p>Páginas vistas</p></article>
+          <article class="metric-card"><div class="metric-label">Usuarios · 7 días</div><strong id="users-7">—</strong><p>Última semana</p></article>
+          <article class="metric-card"><div class="metric-label">Vistas · 7 días</div><strong id="views-7">—</strong><p>Última semana</p></article>
+          <article class="metric-card"><div class="metric-label">Usuarios · 30 días</div><strong id="users-30">—</strong><p>Último mes</p></article>
+          <article class="metric-card"><div class="metric-label">Vistas · 30 días</div><strong id="views-30">—</strong><p>Último mes</p></article>
         </div>
 
         <article class="panel chart-panel">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">Últimos 30 días</p>
-              <h3>Tráfico diario</h3>
-            </div>
-            <span class="chart-legend"><i></i>Sesiones</span>
-          </div>
-          <div class="chart-wrap">
-            <svg id="traffic-chart" viewBox="0 0 860 280" role="img" aria-label="Gráfica de sesiones diarias"></svg>
-            <p class="empty-state" id="chart-empty" hidden>No hay datos disponibles para este período.</p>
-          </div>
+          <div class="panel-heading"><div><p class="panel-kicker">Últimos 30 días</p><h3>Tráfico diario</h3></div><span class="chart-legend"><i></i>Sesiones</span></div>
+          <div class="chart-wrap"><svg id="traffic-chart" viewBox="0 0 860 280" role="img" aria-label="Gráfica de sesiones diarias"></svg><p class="empty-state" id="chart-empty" hidden>No hay datos disponibles para este período.</p></div>
         </article>
 
         <div class="two-column-grid">
-          <article class="panel">
-            <div class="panel-heading">
-              <div>
-                <p class="panel-kicker">Contenido</p>
-                <h3>Páginas más visitadas</h3>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead><tr><th>Página</th><th>Vistas</th></tr></thead>
-                <tbody id="pages-table"></tbody>
-              </table>
-            </div>
-          </article>
-
-          <article class="panel">
-            <div class="panel-heading">
-              <div>
-                <p class="panel-kicker">Audiencia</p>
-                <h3>Dispositivos</h3>
-              </div>
-            </div>
-            <div class="device-list" id="device-list"></div>
-          </article>
+          <article class="panel"><div class="panel-heading"><div><p class="panel-kicker">Contenido</p><h3>Páginas más visitadas</h3></div></div><div class="table-wrap"><table><thead><tr><th>Página</th><th>Vistas</th></tr></thead><tbody id="pages-table"></tbody></table></div></article>
+          <article class="panel"><div class="panel-heading"><div><p class="panel-kicker">Audiencia</p><h3>Dispositivos</h3></div></div><div class="device-list" id="device-list"></div></article>
         </div>
 
-        <article class="panel">
-          <div class="panel-heading">
-            <div>
-              <p class="panel-kicker">Ubicación</p>
-              <h3>Visitas por país</h3>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>País</th><th>Sesiones</th><th>Usuarios</th><th>Vistas</th></tr></thead>
-              <tbody id="countries-table"></tbody>
-            </table>
-          </div>
-        </article>
+        <article class="panel"><div class="panel-heading"><div><p class="panel-kicker">Ubicación</p><h3>Visitas por país</h3></div></div><div class="table-wrap"><table><thead><tr><th>País</th><th>Sesiones</th><th>Usuarios</th><th>Vistas</th></tr></thead><tbody id="countries-table"></tbody></table></div></article>
       </div>
     </section>
   </main>
