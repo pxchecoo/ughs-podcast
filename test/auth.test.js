@@ -5,7 +5,6 @@ import test from "node:test";
 import { authorizeAnalyticsRequest } from "../api/_auth.js";
 import {
   createAdminSession,
-  destroyAdminSession,
   SESSION_COOKIE_NAME,
   sessionCookie,
   validateAdminSession,
@@ -14,26 +13,6 @@ import { createLoginHandler } from "../api/login.js";
 import { createLogoutHandler } from "../api/logout.js";
 
 const allowedOrigin = "https://universityenvivo.com";
-
-class FakeRedis {
-  constructor() {
-    this.values = new Map();
-  }
-
-  async set(key, value, options = {}) {
-    if (options.nx && this.values.has(key)) return null;
-    this.values.set(key, value);
-    return "OK";
-  }
-
-  async get(key) {
-    return this.values.get(key) ?? null;
-  }
-
-  async del(key) {
-    return this.values.delete(key) ? 1 : 0;
-  }
-}
 
 function postRequest(path, body, headers = {}) {
   return new Request(`https://universityenvivo.com${path}`, {
@@ -47,32 +26,31 @@ function postRequest(path, body, headers = {}) {
   });
 }
 
-test("creates, validates, and revokes a server-side session", async () => {
-  const redis = new FakeRedis();
+test("creates and validates a stateless signed session", async () => {
   const secret = randomBytes(48).toString("base64url");
   const now = Date.now();
-  const session = await createAdminSession({ redis, secret, now });
+  const session = await createAdminSession({ secret, now });
 
-  assert.equal(session.token.split(".").length, 2);
+  assert.equal(session.token.split(".").length, 3);
   assert.deepEqual(
-    await validateAdminSession(session.token, { redis, secret, now: now + 1_000 }),
+    await validateAdminSession(session.token, { secret, now: now + 1_000 }),
     { expiresAt: session.expiresAt },
   );
-
-  await destroyAdminSession(session.token, { redis, secret });
   assert.equal(
-    await validateAdminSession(session.token, { redis, secret, now: now + 2_000 }),
+    await validateAdminSession(session.token, {
+      secret,
+      now: session.expiresAt + 1,
+    }),
     null,
   );
 });
 
 test("rejects a session token with a modified signature", async () => {
-  const redis = new FakeRedis();
   const secret = randomBytes(48).toString("base64url");
-  const session = await createAdminSession({ redis, secret });
+  const session = await createAdminSession({ secret });
   const tamperedToken = `${session.token.slice(0, -1)}${session.token.endsWith("A") ? "B" : "A"}`;
 
-  assert.equal(await validateAdminSession(tamperedToken, { redis, secret }), null);
+  assert.equal(await validateAdminSession(tamperedToken, { secret }), null);
 });
 
 test("session cookie uses secure host-only attributes", () => {
@@ -200,7 +178,7 @@ test("login rejects requests without a trusted origin", async () => {
   assert.equal(response.headers.get("access-control-allow-origin"), null);
 });
 
-test("logout revokes the server session and expires the cookie", async () => {
+test("logout expires the cookie and calls the session destroy hook", async () => {
   let destroyedToken;
   const handler = createLogoutHandler({
     destroySession: async (token) => {
