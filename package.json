@@ -7,11 +7,13 @@
     "node": ">=22 <25"
   },
   "scripts": {
-    "check": "node --check api/analytics.js && node --check api/_analytics.js && node --check api/_auth.js",
+    "check": "node --check api/*.js && node --check admin/admin.js && node -e \"JSON.parse(require('node:fs').readFileSync('vercel.json', 'utf8'))\"",
     "test": "node --test"
   },
   "dependencies": {
-    "@google-analytics/data": "^6.1.0"
+    "@google-analytics/data": "^6.1.0",
+    "@upstash/ratelimit": "^2.1.0",
+    "@upstash/redis": "^1.38.4"
   },
   "type": "module"
 }

@@ -37,7 +37,7 @@ test("rejects an unapproved origin without CORS access", async () => {
   assert.equal(response.headers.get("access-control-allow-origin"), null);
 });
 
-test("denies analytics data until server-side authentication exists", async () => {
+test("denies analytics data without an authenticated session", async () => {
   const response = await analyticsFunction.fetch(
     new Request("https://api.example.test/api/analytics", {
       headers: { Origin: allowedOrigin },
@@ -45,8 +45,8 @@ test("denies analytics data until server-side authentication exists", async () =
   );
   const body = await response.json();
 
-  assert.equal(response.status, 503);
-  assert.equal(body.error.code, "AUTH_NOT_CONFIGURED");
+  assert.equal(response.status, 401);
+  assert.equal(body.error.code, "UNAUTHORIZED");
   assert.equal(JSON.stringify(body).includes("GA_PRIVATE_KEY"), false);
   assert.equal(JSON.stringify(body).includes("GA_CLIENT_EMAIL"), false);
 });

@@ -1,90 +1,58 @@
 import { getAnalyticsDashboardData } from "./_analytics.js";
 import { authorizeAnalyticsRequest } from "./_auth.js";
+import {
+  isAllowedOrigin,
+  jsonResponse,
+  originNotAllowedResponse,
+  preflightResponse,
+} from "./_http.js";
 
-const ALLOWED_ORIGINS = new Set([
-  "https://universityenvivo.com",
-  "https://www.universityenvivo.com",
-]);
-
-function responseHeaders(origin) {
-  const headers = new Headers({
-    "Cache-Control": "private, no-store, max-age=0",
-    "Content-Type": "application/json; charset=utf-8",
-    "Referrer-Policy": "no-referrer",
-    "X-Content-Type-Options": "nosniff",
-    "X-Robots-Tag": "noindex, nofollow",
-  });
-
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
-    headers.set("Access-Control-Allow-Origin", origin);
-    headers.set("Access-Control-Allow-Credentials", "true");
-    headers.set("Access-Control-Allow-Methods", "GET, OPTIONS");
-    headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type");
-    headers.set("Vary", "Origin");
-  }
-
-  return headers;
-}
-
-function json(body, status, origin) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: responseHeaders(origin),
-  });
-}
+const ALLOWED_METHODS = "GET, OPTIONS";
 
 export default {
   async fetch(request) {
-    const origin = request.headers.get("origin");
-
-    if (origin && !ALLOWED_ORIGINS.has(origin)) {
-      return json(
-        {
-          error: {
-            code: "ORIGIN_NOT_ALLOWED",
-            message: "This origin is not allowed.",
-          },
-        },
-        403,
-        null,
-      );
+    if (!isAllowedOrigin(request)) {
+      return originNotAllowedResponse(request, ALLOWED_METHODS);
     }
 
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: responseHeaders(origin) });
+      return preflightResponse(request, ALLOWED_METHODS);
     }
 
     if (request.method !== "GET") {
-      return json(
+      return jsonResponse(
+        request,
         {
           error: {
             code: "METHOD_NOT_ALLOWED",
             message: "Only GET requests are supported.",
           },
         },
-        405,
-        origin,
+        { status: 405, allowedMethods: ALLOWED_METHODS },
       );
     }
 
     const access = await authorizeAnalyticsRequest(request);
 
     if (!access.authorized) {
-      return json(
+      return jsonResponse(
+        request,
         {
           error: {
             code: access.code,
             message: access.message,
           },
         },
-        access.status,
-        origin,
+        { status: access.status, allowedMethods: ALLOWED_METHODS },
       );
     }
 
     try {
       const analytics = await getAnalyticsDashboardData();
-      return json(analytics, 200, origin);
+      return jsonResponse(request, analytics, {
+        status: 200,
+        allowedMethods: ALLOWED_METHODS,
+      });
     } catch (error) {
       const safeErrorCode =
         typeof error?.code === "string" || typeof error?.code === "number"
@@ -95,15 +63,15 @@ export default {
         code: safeErrorCode,
       });
 
-      return json(
+      return jsonResponse(
+        request,
         {
           error: {
             code: "ANALYTICS_UNAVAILABLE",
             message: "Analytics data is temporarily unavailable.",
           },
         },
-        502,
-        origin,
+        { status: 502, allowedMethods: ALLOWED_METHODS },
       );
     }
   },

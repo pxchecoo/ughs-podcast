@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Analytics — University En Vivo</title>
+  <link rel="icon" href="/assets/favicon.png" />
+  <link rel="stylesheet" href="/admin/admin.css" />
+  <script src="/admin/admin.js" defer></script>
+</head>
+<body>
+  <main>
+    <section class="login-shell" id="login-view" aria-labelledby="login-title">
+      <div class="login-card">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 1 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.8" />
+            <path d="M6.5 11.5v.5a5.5 5.5 0 0 0 11 0v-.5M12 17.5V21M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </div>
+        <p class="eyebrow">University En Vivo</p>
+        <h1 id="login-title">Panel de Analytics</h1>
+        <p class="login-copy">Acceso privado para consultar el rendimiento del website.</p>
+
+        <form id="login-form" novalidate>
+          <label for="password">Contraseña de administrador</label>
+          <div class="password-field">
+            <input id="password" name="password" type="password" autocomplete="current-password" required />
+            <button class="visibility-button" id="toggle-password" type="button" aria-label="Mostrar contraseña">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="1.7" />
+                <circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.7" />
+              </svg>
+            </button>
+          </div>
+          <p class="form-status" id="login-status" aria-live="polite"></p>
+          <button class="primary-button" id="login-button" type="submit">Entrar al panel</button>
+        </form>
+
+        <p class="security-note">
+          <span aria-hidden="true">●</span>
+          Sesión protegida y credenciales procesadas en el servidor
+        </p>
+      </div>
+    </section>
+
+    <section class="dashboard" id="dashboard-view" aria-labelledby="dashboard-title" hidden>
+      <header class="dashboard-header">
+        <div class="header-brand">
+          <div class="brand-mark small" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 1 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.8" />
+              <path d="M6.5 11.5v.5a5.5 5.5 0 0 0 11 0v-.5M12 17.5V21M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div>
+            <p>University En Vivo</p>
+            <h1 id="dashboard-title">Analytics</h1>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="secondary-button" id="refresh-button" type="button">Actualizar</button>
+          <button class="logout-button" id="logout-button" type="button">Cerrar sesión</button>
+        </div>
+      </header>
+
+      <div class="dashboard-content">
+        <div class="dashboard-intro">
+          <div>
+            <p class="eyebrow">Resumen general</p>
+            <h2>Actividad del website</h2>
+          </div>
+          <p class="updated-at" id="updated-at">Actualizando datos…</p>
+        </div>
+
+        <p class="dashboard-message" id="dashboard-message" aria-live="polite"></p>
+
+        <div class="metrics-grid">
+          <article class="metric-card realtime-card">
+            <div class="metric-label"><span class="live-dot"></span>Usuarios activos ahora</div>
+            <strong id="active-now">—</strong>
+            <p>Últimos 30 minutos</p>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">Usuarios de hoy</div>
+            <strong id="users-today">—</strong>
+            <p>Usuarios activos</p>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">Vistas de hoy</div>
+            <strong id="views-today">—</strong>
+            <p>Páginas vistas</p>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">Usuarios · 7 días</div>
+            <strong id="users-7">—</strong>
+            <p>Última semana</p>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">Vistas · 7 días</div>
+            <strong id="views-7">—</strong>
+            <p>Última semana</p>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">Usuarios · 30 días</div>
+            <strong id="users-30">—</strong>
+            <p>Último mes</p>
+          </article>
+          <article class="metric-card">
+            <div class="metric-label">Vistas · 30 días</div>
+            <strong id="views-30">—</strong>
+            <p>Último mes</p>
+          </article>
+        </div>
+
+        <article class="panel chart-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Últimos 30 días</p>
+              <h3>Tráfico diario</h3>
+            </div>
+            <span class="chart-legend"><i></i>Sesiones</span>
+          </div>
+          <div class="chart-wrap">
+            <svg id="traffic-chart" viewBox="0 0 860 280" role="img" aria-label="Gráfica de sesiones diarias"></svg>
+            <p class="empty-state" id="chart-empty" hidden>No hay datos disponibles para este período.</p>
+          </div>
+        </article>
+
+        <div class="two-column-grid">
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="panel-kicker">Contenido</p>
+                <h3>Páginas más visitadas</h3>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Página</th><th>Vistas</th></tr></thead>
+                <tbody id="pages-table"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="panel-kicker">Audiencia</p>
+                <h3>Dispositivos</h3>
+              </div>
+            </div>
+            <div class="device-list" id="device-list"></div>
+          </article>
+        </div>
+
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="panel-kicker">Ubicación</p>
+              <h3>Visitas por país</h3>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>País</th><th>Sesiones</th><th>Usuarios</th><th>Vistas</th></tr></thead>
+              <tbody id="countries-table"></tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

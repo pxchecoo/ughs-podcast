@@ -1,16 +1,43 @@
-/**
- * Server-side authorization boundary for private Analytics data.
- *
- * This intentionally denies every request until /admin has real server-side
- * authentication and this function validates its signed session. Do not
- * replace this with a browser-only password or a client-visible shared secret.
- */
-export async function authorizeAnalyticsRequest(_request) {
-  return {
-    authorized: false,
-    status: 503,
-    code: "AUTH_NOT_CONFIGURED",
-    message:
-      "Analytics access is disabled until server-side authentication is configured.",
-  };
+import { readSessionToken, validateAdminSession } from "./_session.js";
+
+export async function authorizeAnalyticsRequest(
+  request,
+  { validateSession = validateAdminSession } = {},
+) {
+  const token = readSessionToken(request);
+
+  if (!token) {
+    return {
+      authorized: false,
+      status: 401,
+      code: "UNAUTHORIZED",
+      message: "Authentication is required.",
+    };
+  }
+
+  try {
+    const session = await validateSession(token);
+
+    if (!session) {
+      return {
+        authorized: false,
+        status: 401,
+        code: "UNAUTHORIZED",
+        message: "Authentication is required.",
+      };
+    }
+
+    return { authorized: true, session };
+  } catch (error) {
+    const safeCode =
+      typeof error?.code === "string" ? error.code : "AUTH_UNKNOWN";
+    console.error("Admin session validation failed.", { code: safeCode });
+
+    return {
+      authorized: false,
+      status: 503,
+      code: "AUTH_UNAVAILABLE",
+      message: "Authentication is temporarily unavailable.",
+    };
+  }
 }
