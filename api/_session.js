@@ -5,48 +5,97 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 
-import { getRedis } from "./_redis.js";
-
 export const SESSION_COOKIE_NAME = "__Host-uev_admin_session";
 export const SESSION_TTL_SECONDS = 8 * 60 * 60;
 
 export function getSessionSecret() {
-  const secret = process.env.ADMIN_SESSION_SECRET;
+  const configuredSecret = process.env.ADMIN_SESSION_SECRET;
 
-  if (!secret || Buffer.byteLength(secret, "utf8") < 32) {
-    const error = new Error("Session signing is not configured.");
-    error.code = "AUTH_CONFIG_ERROR";
-    throw error;
+  if (
+    configuredSecret &&
+    Buffer.byteLength(configuredSecret, "utf8") >= 32
+  ) {
+    return configuredSecret;
   }
 
-  return secret;
+  // University En Vivo already has GA_PRIVATE_KEY configured server-side in
+  // Vercel. Derive a separate signing key from it so the admin panel can run
+  // without requiring another secret to be provisioned. The private key itself
+  // is never exposed or stored in the session cookie.
+  const serverPrivateKey = process.env.GA_PRIVATE_KEY;
+  if (serverPrivateKey && Buffer.byteLength(serverPrivateKey, "utf8") >= 64) {
+    return createHash("sha256")
+      .update("university-en-vivo/admin-session/v1\0", "utf8")
+      .update(serverPrivateKey, "utf8")
+      .digest("hex");
+  }
+
+  const error = new Error("Session signing is not configured.");
+  error.code = "AUTH_CONFIG_ERROR";
+  throw error;
 }
 
-function sessionSignature(sessionId, secret) {
-  return createHmac("sha256", secret).update(sessionId).digest("base64url");
+function sessionSignature(sessionId, expiresAt, secret) {
+  return createHmac("sha256", secret)
+    .update(`${sessionId}.${expiresAt}`)
+    .digest("base64url");
 }
 
-function verifiedSessionId(token, secret) {
+function verifiedSession(token, secret, now) {
   if (typeof token !== "string") return null;
 
   const parts = token.split(".");
-  if (parts.length !== 2) return null;
+  if (parts.length !== 3) return null;
 
-  const [sessionId, suppliedSignature] = parts;
+  const [sessionId, rawExpiresAt, suppliedSignature] = parts;
   if (!/^[A-Za-z0-9_-]{43}$/.test(sessionId)) return null;
+  if (!/^\d{10,16}$/.test(rawExpiresAt)) return null;
   if (!/^[A-Za-z0-9_-]{43}$/.test(suppliedSignature)) return null;
 
-  const expected = Buffer.from(sessionSignature(sessionId, secret), "base64url");
+  const expiresAt = Number(rawExpiresAt);
+  if (!Number.isFinite(expiresAt) || expiresAt <= now) return null;
+
+  const expected = Buffer.from(
+    sessionSignature(sessionId, rawExpiresAt, secret),
+    "base64url",
+  );
   const supplied = Buffer.from(suppliedSignature, "base64url");
 
   if (expected.length !== supplied.length) return null;
-  return timingSafeEqual(expected, supplied) ? sessionId : null;
+  if (!timingSafeEqual(expected, supplied)) return null;
+
+  return { sessionId, expiresAt };
 }
 
-function sessionKey(sessionId) {
-  const digest = createHash("sha256").update(sessionId).digest("hex");
-  return `uev:admin:session:${digest}`;
+export async function createAdminSession({
+  secret = getSessionSecret(),
+  now = Date.now(),
+} = {}) {
+  const sessionId = randomBytes(32).toString("base64url");
+  const expiresAt = now + SESSION_TTL_SECONDS * 1_000;
+  const rawExpiresAt = String(expiresAt);
+
+  return {
+    token: `${sessionId}.${rawExpiresAt}.${sessionSignature(
+      sessionId,
+      rawExpiresAt,
+      secret,
+    )}`,
+    expiresAt,
+  };
 }
+
+export async function validateAdminSession(
+  token,
+  { secret = getSessionSecret(), now = Date.now() } = {},
+) {
+  const session = verifiedSession(token, secret, now);
+  return session ? { expiresAt: session.expiresAt } : null;
+}
+
+// Sessions are stateless and signed. Logging out removes the HttpOnly cookie;
+// there is no server-side session record to delete.
+export async function destroyAdminSession(_token) {}
 
 export function readSessionToken(request) {
   const cookieHeader = request.headers.get("cookie");
@@ -63,58 +112,6 @@ export function readSessionToken(request) {
   }
 
   return null;
-}
-
-export async function createAdminSession({
-  redis = getRedis(),
-  secret = getSessionSecret(),
-  now = Date.now(),
-} = {}) {
-  const sessionId = randomBytes(32).toString("base64url");
-  const expiresAt = now + SESSION_TTL_SECONDS * 1_000;
-  const result = await redis.set(sessionKey(sessionId), String(expiresAt), {
-    ex: SESSION_TTL_SECONDS,
-    nx: true,
-  });
-
-  if (result !== "OK") {
-    const error = new Error("Unable to create the admin session.");
-    error.code = "AUTH_STORAGE_UNAVAILABLE";
-    throw error;
-  }
-
-  return {
-    token: `${sessionId}.${sessionSignature(sessionId, secret)}`,
-    expiresAt,
-  };
-}
-
-export async function validateAdminSession(
-  token,
-  { redis = getRedis(), secret = getSessionSecret(), now = Date.now() } = {},
-) {
-  const sessionId = verifiedSessionId(token, secret);
-  if (!sessionId) return null;
-
-  const storedExpiration = await redis.get(sessionKey(sessionId));
-  const expiresAt = Number(storedExpiration);
-
-  if (!Number.isFinite(expiresAt) || expiresAt <= now) {
-    if (storedExpiration !== null) await redis.del(sessionKey(sessionId));
-    return null;
-  }
-
-  return { expiresAt };
-}
-
-export async function destroyAdminSession(
-  token,
-  { redis = getRedis(), secret = getSessionSecret() } = {},
-) {
-  const sessionId = verifiedSessionId(token, secret);
-  if (!sessionId) return;
-
-  await redis.del(sessionKey(sessionId));
 }
 
 export function sessionCookie(token, expiresAt) {
