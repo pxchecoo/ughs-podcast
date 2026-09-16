@@ -19,14 +19,14 @@ const MAX_PASSWORD_LENGTH = 1_024;
 
 function authenticationConfig() {
   const password = process.env.ADMIN_PASSWORD;
-  const secret = getSessionSecret();
 
   if (!password) {
-    const error = new Error("Admin authentication is not configured.");
-    error.code = "AUTH_CONFIG_ERROR";
+    const error = new Error("Admin password is not configured.");
+    error.code = "AUTH_PASSWORD_MISSING";
     throw error;
   }
 
+  const secret = getSessionSecret();
   return { password, secret };
 }
 
