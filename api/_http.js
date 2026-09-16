@@ -1,6 +1,7 @@
 export const ALLOWED_ORIGINS = new Set([
   "https://universityenvivo.com",
   "https://www.universityenvivo.com",
+  "https://ughs-podcast.vercel.app",
 ]);
 
 export function isAllowedOrigin(request, { required = false } = {}) {
