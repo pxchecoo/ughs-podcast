@@ -23,4 +23,4 @@ El usuario autorizó completar la configuración y publicar el 7 de noviembre de
 
 ## Publicación
 
-En preparación: primero Preview de Vercel y verificaciones de rutas/funciones; después actualización autorizada de main y comprobación de GitHub Pages y Vercel. Los flags impiden recoger datos hasta completar los pasos anteriores. Este archivo se actualizará con los identificadores verificados del despliegue.
+Preview verificado: `dpl_8EXKQ1u3j3nHLuy8SJT1xXwhiUKB`, commit `96e2b8b72f8fb20dca0b527f53cb03e0eecddaaa`, READY. Build de Vercel completado y verificación HTTPS de APIs, admin, privacidad, módulos públicos, bloqueo de módulos de servidor/SQL/.env, POST deshabilitado, Origin no permitido y lectura de Coming Soon. No se crearon ni modificaron registros de aplicación. La publicación de main sigue a esta comprobación; los flags permanecen OFF hasta completar la configuración.
