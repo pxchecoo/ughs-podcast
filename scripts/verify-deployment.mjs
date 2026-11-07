@@ -21,10 +21,16 @@ try {
     const text=await response.text();if(contains)assert.ok(text.toLowerCase().includes(contains.toLowerCase()),`${path} content`);
     console.log(`PASS ${path} ${response.status()}`);
   }
+  const configuration=await context.request.get(base+'/api/interview-requests');
+  assert.equal((await configuration.json()).enabled,input.enabled===true);console.log('PASS expected public feature state');
   const post=await context.request.post(base+'/api/interview-requests',{headers:{Origin:base},data:{}});
-  assert.equal(post.status(),503);assert.equal((await post.json()).error.code,'FORM_DISABLED');console.log('PASS disabled POST has no persistence path');
+  assert.equal(post.status(),input.enabled===true?400:503);assert.equal((await post.json()).error.code,input.enabled===true?'VALIDATION_FAILED':'FORM_DISABLED');console.log('PASS invalid POST has no persistence path');
+  if(input.cronSecret){
+    const maintenance=await context.request.get(base+'/api/interview-maintenance',{headers:{Authorization:`Bearer ${input.cronSecret}`},timeout:120000});
+    assert.equal(maintenance.status(),200);const result=await maintenance.json();assert.equal(result.ok,true);assert.equal(result.notifications,'processed');console.log('PASS authorized full database health and outbox maintenance');
+  }
   const badOrigin=await context.request.post(base+'/api/interview-requests',{headers:{Origin:'https://untrusted.example'},data:{}});assert.equal(badOrigin.status(),403);console.log('PASS mutation rejects untrusted Origin');
   const status=await context.request.get(base+'/api/site-status');assert.equal(status.status(),200);assert.equal(typeof(await status.json()).comingSoon,'boolean');console.log('PASS existing Coming Soon read');
-  await context.close();console.log('Deployment verification passed. No application records were created or modified.');
+  await context.close();console.log('Deployment verification passed. No applicant records were created or modified.');
 } catch { console.error('DEPLOYMENT_VERIFICATION_FAILED. No credentials or raw access URLs are logged.');process.exitCode=1; }
 finally {await browser.close();}

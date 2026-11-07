@@ -58,9 +58,9 @@ La reconciliación procesa un lote de tres. Ante backlog mayor, un administrador
 
 ## Cron Vercel: preparar sin activar
 
-No hay Cron preexistente en el checkout ni se añadió uno activo. `config/vercel-cron.example.json` contiene solamente el fragmento revisable. Confirmar primero plan, límites de funciones, variables, endpoint y flujo de despliegue. La consulta read-only del equipo no reveló el plan, por lo que se dejó como bloqueo explícito.
+No había Cron preexistente. Se añadió a `vercel.json` la comprobación diaria `0 13 * * *`, tras la autorización de publicación. Las herramientas del equipo no exponen el nombre del plan; se utiliza el límite más restrictivo documentado (una ejecución diaria) y la aceptación del despliegue confirma la capacidad efectiva, sin contratar ni cambiar el plan.
 
-La [documentación vigente Vercel](https://vercel.com/docs/cron-jobs/usage-and-pricing) permite Cron en todos los planes; Hobby limita cada job a ejecución diaria y puede ejecutarlo entre el inicio y el final de la hora configurada. `0 13 * * *` representa 13:00 UTC; en Puerto Rico, una ventana aproximada de 9:00 a 10:00 a. m. El plan real debe confirmarse antes de incorporar este fragmento a `vercel.json`, preservando cualquier otro schedule que exista entonces.
+La [documentación vigente Vercel](https://vercel.com/docs/cron-jobs/usage-and-pricing) permite Cron en todos los planes; Hobby limita cada job a ejecución diaria y puede ejecutarlo entre el inicio y el final de la hora configurada. `0 13 * * *` representa 13:00 UTC; en Puerto Rico, una ventana aproximada de 9:00 a 10:00 a. m. La programación diaria es compatible con todos los planes; no se configura una precisión mayor que la que garantiza Hobby. La próxima ventana se muestra solo después de confirmar el schedule desplegado.
 
 La ruta real es **GET `/api/interview-maintenance`**, sin redirect. Requiere Authorization Bearer CRON_SECRET válido de al menos 32 caracteres, INTERVIEW_MAINTENANCE_ENABLED=true y VERCEL_ENV=production. No basta User-Agent. Dev/Preview están denegados por ese endpoint incluso con secreto correcto; la rutina puede probarse mediante pruebas locales y, con autorización específica, en un entorno staging aislado mediante un proceso controlado, sin alterar el guard de producción para probar.
 
