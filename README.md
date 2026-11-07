@@ -2,7 +2,7 @@
 
 Sitio existente en HTML/CSS/JavaScript, frontend en GitHub Pages y API/administración en Vercel.
 
-La ampliación de entrevistas está implementada y su código está publicado en la web y el backend existentes, **con recepción desactivada hasta completar la configuración**. La fase de publicación autorizada por el usuario se documenta en [RELEASE.md](docs/RELEASE.md).
+El sistema de entrevistas está publicado en la web y el backend existentes, con Supabase, acceso personal de administración, remitente verificado y mantenimiento diario. La configuración y evidencia de activación están en [RELEASE.md](docs/RELEASE.md).
 
 ```sh
 npm ci
@@ -22,4 +22,4 @@ npm run dev
 - [Migración SQL revisable](supabase/migrations/202611070001_interviews.sql)
 - [Ejemplo de variables sin secretos](.env.example)
 
-Antes de activar: proyecto Supabase staging, revisión de migración/RLS, cuentas individuales, correo verificado, política de privacidad aprobada, comprobación de plan/Cron y revisión de Preview. El flujo GitHub → Vercel y el de GitHub Pages se publican por separado; no hacer push a `main` para probar.
+Para cambios futuros, usar staging y revisar Preview antes de publicar. GitHub Pages y Vercel despliegan por separado. La revisión de conservación a los 180 días es manual; los avisos requieren observar su primera entrega legítima.

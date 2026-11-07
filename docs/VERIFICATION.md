@@ -1,3 +1,5 @@
+> Evidencia actual de activación: [RELEASE.md](RELEASE.md). Las limitaciones iniciales siguientes describen la fase previa a la configuración de servicios.
+
 # Verificación ejecutada
 
 Fecha: 7 de noviembre de 2026. Las pruebas locales usaron fixtures y mocks; la verificación alojada posterior fue de solo lectura y controles negativos, con acceso temporal mantenido en memoria.
@@ -93,3 +95,7 @@ Se creó el proyecto dedicado `university-en-vivo` en Supabase (costo confirmado
 El Preview real de Vercel completó build en Node 24 y pasó verificación HTTPS con acceso temporal en memoria. Se confirmaron 200 en configuración/admin/privacidad, 401 de aplicación en sesiones/salud/Cron sin credenciales, 404 en módulos privados/SQL/.env, 503 con FORM_DISABLED en POST y 403 por Origin no permitido. La lectura de Coming Soon respondió correctamente sin modificar el estado. El helper `scripts/verify-deployment.mjs` recibe las URLs temporales por stdin y no las guarda ni imprime.
 
 La misma verificación HTTPS pasó en el alias de producción y GitHub Pages terminó su build. Chrome confirmó home/Coming Soon/flag OFF y ausencia de overflow en el dominio oficial. El único log de error observado fue FORM_DISABLED de la prueba negativa esperada; no se crearon solicitudes ni se enviaron correos. Ver RELEASE.md para IDs y configuración pendiente.
+
+## Activación de servicios reales
+
+El remitente Resend y todos sus registros DNS están verificados. La cuenta administradora confirmada tiene allowlist activa. El backend de producción completó una ejecución full real (562 ms): conexión, escritura, lectura e integridad, borrado y comprobación independiente de cero residuos. La reconciliación vacía del outbox respondió correctamente. No se enviaron mensajes de prueba ni se crearon solicitudes ficticias. La política vigente usa la revisión manual a 180 días elegida por el usuario. Se desplegó el Cron diario y se verificó su endpoint protegido; el primer disparo automático futuro y el login personal por el titular siguen siendo observaciones posteriores, no pruebas ejecutadas por el agente.

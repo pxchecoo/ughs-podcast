@@ -1,3 +1,5 @@
+> Estado actual: configuración y activación completadas el 7 de noviembre de 2026; consultar [RELEASE.md](RELEASE.md). Los bloqueos descritos en este informe inicial se conservan como contexto histórico y fueron resueltos según esa evidencia.
+
 # Informe técnico — Sistema de entrevistas y salud de base de datos
 
 Estado de publicación actualizado en [RELEASE.md](RELEASE.md). El informe siguiente describe la implementación original y sus límites iniciales.
@@ -66,7 +68,7 @@ No se afirma que las integraciones remotas estén funcionando. Las pruebas de Po
 - `admin/admin.js`: restaura ambas sesiones y muestra las áreas permitidas sin exigir acceso a Google Analytics para revisar entrevistas.
 - `admin/admin.css`: reglas nuevas usando tokens existentes; accesibilidad y responsive.
 - `package.json`, `package-lock.json`: comandos; `@vercel/functions` para `waitUntil`; PGlite y Playwright solo de desarrollo. Actualización correctiva de gRPC de la cadena existente.
-- `vercel.json`: conserva rewrite y cabeceras; build estático y duración de nuevas funciones. **No contiene crons activos**.
+- `vercel.json`: conserva rewrite y cabeceras; build estático y duración de nuevas funciones. Incluye ahora el Cron diario autorizado; ver RELEASE.md.
 - `.gitignore`: mantiene protección de `.env*`, permite `.env.example`, ignora salida y artefactos.
 
 ## 5. Base de datos y autorización
