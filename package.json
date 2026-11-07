@@ -7,13 +7,21 @@
     "node": ">=22 <25"
   },
   "scripts": {
-    "check": "node --check api/*.js && node --check admin/admin.js && node -e \"JSON.parse(require('node:fs').readFileSync('vercel.json', 'utf8'))\"",
-    "test": "node --test"
+    "check": "node scripts/check.mjs",
+    "test": "node --test test/*.test.js",
+    "dev": "node scripts/dev.mjs",
+    "test:e2e": "node test/browser.mjs",
+    "build": "node scripts/build.mjs"
   },
   "dependencies": {
-    "@google-analytics/data": "^6.1.0",
+    "@google-analytics/data": "7.3.0",
     "@upstash/ratelimit": "^2.1.0",
-    "@upstash/redis": "^1.38.4"
+    "@upstash/redis": "^1.38.4",
+    "@vercel/functions": "^3.11.0"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15",
+    "playwright": "^1.65.0"
+  }
 }

@@ -1,0 +1,5 @@
+.privacy-document { max-width: 850px; margin: auto; padding: 40px 20px; line-height: 1.75; }
+.privacy-document article { margin-top: 24px; padding: clamp(24px,5vw,52px); }
+.privacy-document h1 { line-height: 1.15; letter-spacing: -.04em; }
+.privacy-document h2 { margin-top: 32px; font-size: 1.2rem; }
+.privacy-document a { color: var(--accent-dark); }

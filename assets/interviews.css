@@ -1,0 +1,26 @@
+[hidden] { display: none !important; }
+.interview-card { padding: clamp(24px, 5vw, 56px); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-xl); box-shadow: var(--shadow); }
+.interview-card h2 { font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.045em; margin: 12px 0; line-height: 1.1; }
+.interview-card p { max-width: 700px; line-height: 1.7; }
+.interview-kicker { color: #7b3d47; font-weight: 700; }
+.interview-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 22px; margin-top: 30px; }
+.interview-field { display: grid; gap: 8px; min-width: 0; }
+.interview-wide { grid-column: 1 / -1; }
+.interview-field label { font-weight: 600; font-size: .9rem; }
+.interview-field input, .interview-field textarea, .interview-field select { width: 100%; min-width: 0; min-height: 48px; border: 1px solid #c8a7ad; border-radius: var(--radius-md); background: var(--bg-2); padding: 12px 16px; font: inherit; color: var(--text); }
+.interview-field textarea { resize: vertical; min-height: 120px; }
+.interview-field small, .interview-error { color: #9c3044; min-height: 1.2em; font-size: .85rem; }
+.interview-card :focus-visible { outline: 3px solid #9c4555; outline-offset: 4px; }
+.interview-field [aria-invalid=true] { border-color: #9c3044; }
+.interview-consent { display: flex; gap: 12px; align-items: flex-start; line-height: 1.6; }
+.interview-consent input { width: 20px; height: 20px; margin-top: 4px; flex-shrink: 0; accent-color: #9c4555; }
+.interview-card a { text-decoration: underline; color: #783c47; }
+.interview-trap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.interview-card button:disabled { opacity: .65; cursor: wait; }
+.interview-form-shell { animation: interview-open .25s ease-out; }
+@keyframes interview-open { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media(max-width:640px) { .interview-grid { grid-template-columns: 1fr; gap: 16px; } }
+@media(prefers-reduced-motion:reduce) { .interview-form-shell { animation: none; } }
+/* Keep brand colors while meeting text contrast on the existing pink CTA. */
+#interviews .btn-primary { color: var(--text); }
+.interview-card input, .interview-card textarea, .interview-card select { scroll-margin-top: 110px; scroll-margin-bottom: 180px; }

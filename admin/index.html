@@ -4,10 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>Analytics — University En Vivo</title>
+  <title>Administración — University En Vivo</title>
   <link rel="icon" href="/assets/favicon.png" />
   <link rel="stylesheet" href="/admin/admin.css" />
   <script src="/admin/host-redirect.js"></script>
+  <script src="/admin/interviews.js" defer></script>
   <script src="/admin/admin.js" defer></script>
 </head>
 <body>
@@ -21,8 +22,8 @@
           </svg>
         </div>
         <p class="eyebrow">University En Vivo</p>
-        <h1 id="login-title">Panel de Analytics</h1>
-        <p class="login-copy">Acceso privado para consultar el rendimiento del website.</p>
+        <h1 id="login-title">Administración</h1>
+        <p class="login-copy">Acceso privado del equipo de University en Vivo.</p>
 
         <form id="login-form" novalidate>
           <label for="password">Contraseña de administrador</label>
@@ -37,6 +38,15 @@
           </div>
           <p class="form-status" id="login-status" aria-live="polite"></p>
           <button class="primary-button" id="login-button" type="submit">Entrar al panel</button>
+        </form>
+
+        <hr class="staff-divider" />
+        <h2>Solicitudes de entrevistas</h2>
+        <p class="login-copy">Usa tu cuenta personal autorizada. La contraseña de analíticas no concede acceso a solicitudes.</p>
+        <form id="staff-login-form">
+          <label for="staff-email">Correo del personal</label><input id="staff-email" type="email" autocomplete="username" maxlength="254" required />
+          <label for="staff-password">Contraseña personal</label><input id="staff-password" type="password" autocomplete="current-password" maxlength="1024" required />
+          <p id="staff-login-status" class="form-status" role="status"></p><button id="staff-login-button" class="primary-button" type="submit">Entrar a solicitudes</button>
         </form>
 
         <p class="security-note">
@@ -57,16 +67,35 @@
           </div>
           <div>
             <p>University En Vivo</p>
-            <h1 id="dashboard-title">Analytics</h1>
+            <h1 id="dashboard-title">Administración</h1>
           </div>
         </div>
         <div class="header-actions">
+          <span id="staff-identity" class="updated-at"></span><button class="logout-button" id="staff-logout" type="button" hidden>Cerrar sesión personal</button>
           <button class="secondary-button" id="refresh-button" type="button">Actualizar</button>
           <button class="logout-button" id="logout-button" type="button">Cerrar sesión</button>
         </div>
       </header>
 
       <div class="dashboard-content">
+        <section class="panel interview-admin-panel" id="interview-requests" aria-labelledby="interview-admin-title">
+          <p class="panel-kicker">University en Vivo</p><h2 id="interview-admin-title">Solicitudes de entrevistas</h2>
+          <div id="interview-staff-prompt"><p>Inicia sesión con tu cuenta personal para revisar solicitudes.</p><button id="staff-open-login" class="secondary-button" type="button">Usar cuenta personal</button></div>
+          <div id="interview-staff-content" hidden>
+            <form id="interview-search-form" class="interview-toolbar"><div><label for="interview-search">Buscar por nombre o tema</label><input type="search" id="interview-search" maxlength="80" /></div><div><label for="interview-filter">Estado</label><select id="interview-filter"><option value="">Todos</option><option value="pending">Pendiente</option><option value="in_review">En revisión</option><option value="approved">Aprobada</option><option value="rejected">Rechazada</option></select></div><div><label for="interview-order">Fecha</label><select id="interview-order"><option value="desc">Más recientes</option><option value="asc">Más antiguas</option></select></div><button id="interview-search-button" class="secondary-button" type="submit">Buscar</button></form>
+            <p id="interview-admin-status" class="form-status" role="status"></p>
+            <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Tema</th><th>Fecha</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="interview-rows"></tbody></table></div>
+            <div id="interview-empty" class="interview-empty" hidden><h3 id="interview-empty-title">Todavía no tenemos solicitudes.</h3><p id="interview-empty-copy">Cuando alguien quiera participar en University en Vivo, su solicitud aparecerá aquí.</p></div>
+            <div class="interview-pagination"><button id="interview-prev" type="button" class="secondary-button" disabled>Anterior</button><span id="interview-page">Página 1</span><button id="interview-next" type="button" class="secondary-button" disabled>Siguiente</button></div>
+            <section id="interview-detail" aria-labelledby="interview-detail-title" hidden><div class="panel-heading"><h3 id="interview-detail-title" tabindex="-1"></h3><button id="interview-close" type="button" class="secondary-button">Cerrar detalles</button></div><dl id="interview-detail-data"></dl><a id="interview-contact" class="secondary-button">Contactar por correo</a><p>Antes de grabar o publicar, gestiona los permisos independientes correspondientes.</p>
+              <form id="interview-review-form"><label for="interview-review-status">Estado</label><select id="interview-review-status"><option value="pending">Pendiente</option><option value="in_review">En revisión</option><option value="approved">Aprobada</option><option value="rejected">Rechazada</option></select><p class="updated-at">Para aprobar, pasa primero por En revisión. Una decisión final puede reabrirse para revisión.</p><label for="interview-notes">Notas internas</label><textarea id="interview-notes" maxlength="4000" rows="5"></textarea><button id="interview-save" class="primary-button" type="submit">Guardar cambios</button></form>
+              <div class="interview-sensitive"><button id="interview-audit-button" class="secondary-button" type="button" hidden>Ver historial</button><button id="interview-export" class="secondary-button" type="button" hidden>Exportar solicitud</button><button id="interview-delete" class="logout-button" type="button" hidden>Eliminar permanentemente</button></div><ul id="interview-audit" hidden></ul>
+            </section>
+          </div>
+        </section>
+        <article class="panel interview-health-panel" id="health-panel" hidden aria-labelledby="health-title"><p class="panel-kicker">Mantenimiento</p><h3 id="health-title">Estado de la base de datos</h3><strong id="health-state" role="status">Estado desconocido</strong><p id="health-details"></p><button id="health-check" class="secondary-button" type="button">Comprobar conexión</button><p id="notification-state" class="updated-at"></p><button id="notification-retry" class="secondary-button" type="button">Procesar avisos pendientes</button></article>
+
+        <div id="legacy-content">
         <div class="dashboard-intro">
           <div>
             <p class="eyebrow">Resumen general</p>
@@ -122,6 +151,7 @@
         </div>
 
         <article class="panel"><div class="panel-heading"><div><p class="panel-kicker">Ubicación</p><h3>Visitas por país</h3></div></div><div class="table-wrap"><table><thead><tr><th>País</th><th>Sesiones</th><th>Usuarios</th><th>Vistas</th></tr></thead><tbody id="countries-table"></tbody></table></div></article>
+        </div>
       </div>
     </section>
   </main>

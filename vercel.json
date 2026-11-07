@@ -35,5 +35,13 @@
         { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
       ]
     }
-  ]
+  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/interview-requests.js": { "maxDuration": 30 },
+    "api/interview-admin.js": { "maxDuration": 60 },
+    "api/database-health.js": { "maxDuration": 120 },
+    "api/interview-maintenance.js": { "maxDuration": 120 }
+  }
 }

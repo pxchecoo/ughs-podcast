@@ -35,6 +35,11 @@ async function apiRequest(path, options = {}) {
 }
 
 function showLogin(message = "") {
+  if (window.interviewAdmin.isAuthenticated()) {
+    window.interviewAdmin.setLegacy(false);
+    showDashboard();
+    return;
+  }
   dashboardView.hidden = true;
   loginView.hidden = false;
   comingSoonToggle.disabled = true;
@@ -319,10 +324,12 @@ async function loadAnalytics({ showUnauthorizedMessage = false } = {}) {
 }
 
 async function loadDashboard({ showUnauthorizedMessage = false } = {}) {
+  const personalSession = await window.interviewAdmin.restore();
   try {
     const { response, body } = await apiRequest("/api/session");
 
     if (response.status === 401 || response.status === 403) {
+      if (personalSession) { window.interviewAdmin.setLegacy(false); showDashboard(); return true; }
       showLogin(showUnauthorizedMessage ? "Tu sesión terminó. Inicia sesión nuevamente." : "");
       return false;
     }
@@ -331,6 +338,7 @@ async function loadDashboard({ showUnauthorizedMessage = false } = {}) {
       throw new Error("session-unavailable");
     }
 
+    window.interviewAdmin.setLegacy(true);
     showDashboard();
     await Promise.all([loadAnalytics({ showUnauthorizedMessage: true }), loadSiteStatus()]);
     return true;

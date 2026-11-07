@@ -445,3 +445,30 @@ td { padding: 14px 12px; border-top: 1px solid var(--line); font-size: 0.86rem; 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
 }
+
+/* Interview management reuses the existing panel, button and typography tokens. */
+.staff-divider { border: 0; border-top: 1px solid var(--line); margin: 32px 0; }
+#staff-login-form input { padding: 12px 16px; margin-bottom: 16px; }
+.interview-admin-panel, .interview-health-panel { margin-bottom: 24px; }
+.interview-toolbar { display: flex; gap: 16px; align-items: end; flex-wrap: wrap; margin-top: 24px; }
+.interview-toolbar > div { flex: 1 1 150px; min-width: 0; }
+.interview-toolbar input { padding: 12px 16px; }
+.interview-admin-panel select, .interview-admin-panel textarea { background: var(--surface-strong); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; width: 100%; padding: 14px; }
+.interview-admin-panel textarea { resize: vertical; }
+.interview-admin-panel :focus-visible, #staff-login-form :focus-visible { outline: 3px solid var(--accent-dark); outline-offset: 3px; }
+.interview-empty { text-align: center; padding: 35px 15px; color: var(--muted); }
+.interview-pagination, .interview-sensitive { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+#interview-detail { margin-top: 30px; border-top: 1px solid var(--line); padding-top: 24px; }
+#interview-detail dt { color: var(--muted); font-size: .85rem; margin-top: 18px; }
+#interview-detail dd { margin: 5px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+#interview-detail .primary-button { margin-top: 16px; }
+#interview-detail form { margin-top: 24px; }
+#interview-detail label { margin-top: 18px; }
+#interview-audit { padding-left: 20px; line-height: 1.8; overflow-wrap: anywhere; }
+#health-details { max-width: 800px; line-height: 1.7; }
+@media(max-width:640px) { .header-actions { flex-wrap: wrap; } .interview-toolbar > div { flex-basis: 100%; } }
+@media(prefers-reduced-motion:reduce) { .interview-admin-panel *, #staff-login-form * { transition: none; animation: none; } }
+.interview-admin-panel .primary-button, #staff-login-form .primary-button { background: var(--accent-dark); }
+#interview-admin-status { color: var(--muted); }
+#interview-admin-status[data-state="success"] { color: #226b4a; }
+#interview-contact.secondary-button { display: inline-flex; padding: 12px 18px; text-decoration: none; }
