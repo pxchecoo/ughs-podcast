@@ -1,6 +1,6 @@
 # Verificación ejecutada
 
-Fecha: 7 de noviembre de 2026. No se utilizaron credenciales ni datos reales en pruebas.
+Fecha: 7 de noviembre de 2026. Las pruebas locales usaron fixtures y mocks; la verificación alojada posterior fue de solo lectura y controles negativos, con acceso temporal mantenido en memoria.
 
 ## Resultados
 
@@ -91,3 +91,5 @@ Se inspeccionaron capturas del formulario móvil y admin de escritorio; ajustes 
 Se creó el proyecto dedicado `university-en-vivo` en Supabase (costo confirmado $0/mes), sin reutilizar proyectos anteriores. Se aplicó la migración, se confirmó RLS en las seis tablas y se ejecutó permissions.sql con rollback. No contiene solicitudes ni cuentas de personal todavía. Esta evidencia posterior complementa los resultados locales anteriores; ver RELEASE.md para estado de publicación/configuración.
 
 El Preview real de Vercel completó build en Node 24 y pasó verificación HTTPS con acceso temporal en memoria. Se confirmaron 200 en configuración/admin/privacidad, 401 de aplicación en sesiones/salud/Cron sin credenciales, 404 en módulos privados/SQL/.env, 503 con FORM_DISABLED en POST y 403 por Origin no permitido. La lectura de Coming Soon respondió correctamente sin modificar el estado. El helper `scripts/verify-deployment.mjs` recibe las URLs temporales por stdin y no las guarda ni imprime.
+
+La misma verificación HTTPS pasó en el alias de producción y GitHub Pages terminó su build. Chrome confirmó home/Coming Soon/flag OFF y ausencia de overflow en el dominio oficial. El único log de error observado fue FORM_DISABLED de la prueba negativa esperada; no se crearon solicitudes ni se enviaron correos. Ver RELEASE.md para IDs y configuración pendiente.

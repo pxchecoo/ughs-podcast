@@ -2,7 +2,7 @@
 
 Sitio existente en HTML/CSS/JavaScript, frontend en GitHub Pages y API/administración en Vercel.
 
-La ampliación de entrevistas está implementada localmente en `codex/interview-request-system`, **desactivada por defecto**. La fase de publicación autorizada por el usuario se documenta en [RELEASE.md](docs/RELEASE.md).
+La ampliación de entrevistas está implementada y su código está publicado en la web y el backend existentes, **con recepción desactivada hasta completar la configuración**. La fase de publicación autorizada por el usuario se documenta en [RELEASE.md](docs/RELEASE.md).
 
 ```sh
 npm ci

@@ -24,3 +24,18 @@ El usuario autorizó completar la configuración y publicar el 7 de noviembre de
 ## Publicación
 
 Preview verificado: `dpl_8EXKQ1u3j3nHLuy8SJT1xXwhiUKB`, commit `96e2b8b72f8fb20dca0b527f53cb03e0eecddaaa`, READY. Build de Vercel completado y verificación HTTPS de APIs, admin, privacidad, módulos públicos, bloqueo de módulos de servidor/SQL/.env, POST deshabilitado, Origin no permitido y lectura de Coming Soon. No se crearon ni modificaron registros de aplicación. La publicación de main sigue a esta comprobación; los flags permanecen OFF hasta completar la configuración.
+
+
+## Publicación confirmada
+
+- Código de aplicación publicado en `main`: `2a741a24c1d80bccae2cb691b9e3489d9d42d9f6`.
+- Vercel producción: `dpl_7mBzKwTMMMrzcerebSq1A8pqA2cY`, READY, Node 24, alias `https://ughs-podcast.vercel.app`.
+- GitHub Pages: build completado para el mismo commit; `https://universityenvivo.com/` responde HTTP 200. El contacto de privacidad está publicado en `/privacy/`.
+- Verificación HTTPS en producción aprobada: configuración pública 200 con enabled=false; sesiones/roles/salud/Cron sin autorización 401; admin/política/módulo público 200; secretos/SQL/módulos de servidor 404; POST deshabilitado 503 antes de persistencia; origen no permitido 403; Coming Soon consulta correctamente.
+- Chrome sobre el dominio oficial, viewport móvil: home visible, Coming Soon desactivado según su configuración existente, sección de entrevistas presente pero oculta, sin overflow horizontal. No se modificó el toggle existente.
+- Logs: una entrada FORM_DISABLED esperada por la prueba negativa; sin errores inesperados en la ventana inspeccionada. No hay drains externos configurados. Monitor/Cron siguen pendientes de activación.
+- No se enviaron correos reales ni se crearon solicitudes de prueba en producción. Las únicas escrituras DB fueron el esquema nuevo autorizado; no había tablas públicas antes. La prueba SQL de permisos terminó en rollback.
+
+Última comprobación de activación: SUPABASE_SECRET_KEY aún ausente de Production; DNS de envío todavía sin los registros nuevos; la cuenta Auth indicada no existe aún. El formulario y mantenimiento permanecen OFF. El borrador de privacidad sigue marcado para revisión de las personas responsables antes de abrir recepción. No se asignaron roles ni se fabricaron identidades.
+
+La publicación del código está terminada. La apertura de recepción necesita las acciones de panel indicadas arriba; no basta que el despliegue esté READY.

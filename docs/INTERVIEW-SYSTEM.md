@@ -152,6 +152,6 @@ GitHub Pages debe seguir publicando el frontend con su flujo actual, que no est�
 
 Procedimientos concretos para Supabase, Vercel, correo, Cron, rollback y permisos en [OPERATIONS.md](OPERATIONS.md). El monitor registra fallos fuera de Supabase y envía avisos por Resend, usando Redis para incidentes. Si fallan también Redis o correo, no existe garantía de alerta; los logs y la observación del proveedor siguen siendo necesarios.
 
-## 13. Confirmaciones verificadas para esta sesión
+## 13. Confirmaciones de la fase inicial, antes de la autorización de publicación
 
 No se accedió a datos de producción ni se ejecutó SQL remoto; solo se consultaron metadatos del proyecto Vercel y cabeceras del sitio público. No se eliminaron datos de producción, no se publicaron secretos, no se hicieron cambios irreversibles de infraestructura, no se desplegó ni se hizo push/merge. No se generaron credenciales ni se enviaron correos o notificaciones reales de prueba. Los únicos borrados fueron fixtures de bases locales y salida estática generada para reconstrucción.
