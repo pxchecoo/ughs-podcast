@@ -17,10 +17,7 @@
 .interview-card a { text-decoration: underline; color: #783c47; }
 .interview-trap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .interview-card button:disabled { opacity: .65; cursor: wait; }
-.interview-form-shell { animation: interview-open .25s ease-out; }
-@keyframes interview-open { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media(max-width:640px) { .interview-grid { grid-template-columns: 1fr; gap: 16px; } }
-@media(prefers-reduced-motion:reduce) { .interview-form-shell { animation: none; } }
 /* Keep brand colors while meeting text contrast on the existing pink CTA. */
 #interviews .btn-primary { color: var(--text); }
 .interview-card input, .interview-card textarea, .interview-card select { scroll-margin-top: 110px; scroll-margin-bottom: 180px; }
