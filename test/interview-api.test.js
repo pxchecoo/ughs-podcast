@@ -96,3 +96,41 @@ test('mail transport uses configured recipients, idempotency, plain text and bou
   assert.equal(id,'test-provider-id');assert.equal(sent.headers['Idempotency-Key'],'test/key');assert.ok(sent.signal);assert.equal(JSON.parse(sent.body).text,'technical only');
 });
 test('feature remains disabled unless explicitly configured',()=>{assert.equal(formEnabled(),false);});
+
+test('trash/restore/purge API validates confirmations, IDs and binds server actor', async () => {
+  const calls=[],permissions=[],actor=randomUUID(),id=randomUUID();
+  const handler=createInterviewAdminHandler({limit:noLimit,authorize:async(_r,p)=>{permissions.push(p);return {user_id:actor};},db:{rpc:async(name,args)=>{calls.push({name,args});return [];},call:async path=>{calls.push({path});return [];}}});
+  for (const [action,method,confirmation,name] of [['','DELETE','ELIMINAR','uev_trash_interview'],['restore','POST','RESTAURAR','uev_restore_interview'],['purge','DELETE','ELIMINAR PERMANENTEMENTE','uev_delete_interview']]) {
+    const path=`/api/interview-admin?id=${id}${action?`&action=${action}`:''}`;
+    assert.equal((await handler.fetch(req(path,method,{revision:2,confirmation}))).status,200);
+    assert.deepEqual(calls.at(-1),{name,args:{p_actor:actor,p_id:id,p_revision:2}});
+    const count=calls.length;
+    for (const body of [{revision:2,confirmation:'wrong'},{revision:0,confirmation},{revision:2,confirmation,p_actor:randomUUID()}]) assert.equal((await handler.fetch(req(path,method,body))).status,400);
+    assert.equal((await handler.fetch(req(path.replace(id,'bad'),method,{revision:2,confirmation}))).status,400);
+    assert.equal(calls.length,count);
+  }
+  assert.equal((await handler.fetch(req('/api/interview-admin?view=trash','GET'))).status,200);
+  assert.equal(calls.at(-1).name,'uev_list_interview_trash');
+  assert.equal(permissions.at(-1),'delete');
+  assert.equal((await handler.fetch(req('/api/interview-admin?view=active','GET'))).status,200);
+  assert.equal(calls.at(-1).name,'uev_list_interviews');
+  assert.equal((await handler.fetch(req(`/api/interview-admin?id=${id}&view=trash`,'GET'))).status,404);
+  assert.match(calls.at(-1).path,/deleted_at=not.is.null/);
+});
+
+test('real authorization rejects missing delete/purge grants and moderator, including trash reads',async()=>{
+  const user_id=randomUUID(),id=randomUUID();let permissionChecks=0,mutations=0;
+  const row={user_id,role:'admin',can_delete:false,can_purge:false};
+  const db={call:async(path)=>path==='user'?{id:user_id,email_confirmed_at:'today'}:[row],rpc:async()=>{mutations++;}};
+  const handler=createInterviewAdminHandler({db,limit:noLimit,authorize:async(r,p)=>{permissionChecks++;return authorizeStaff(r,p,db);}});
+  const cookie={cookie:`${STAFF_COOKIE}=test-only-token`};
+  for (const role of ['admin','moderator']) {
+    row.role=role;
+    for (const [path,method,body] of [[`?id=${id}`,'DELETE',{revision:1,confirmation:'ELIMINAR'}],[`?id=${id}&action=restore`,'POST',{revision:1,confirmation:'RESTAURAR'}],[`?id=${id}&action=purge`,'DELETE',{revision:1,confirmation:'ELIMINAR PERMANENTEMENTE'}],['?view=trash','GET',null]]) assert.equal((await handler.fetch(req(`/api/interview-admin${path}`,method,body,cookie))).status,403);
+  }
+  assert.equal(mutations,0);assert.equal(permissionChecks,8);
+  row.role='admin';row.can_delete=true;
+  assert.equal((await handler.fetch(req(`/api/interview-admin?id=${id}&action=purge`,'DELETE',{revision:1,confirmation:'ELIMINAR PERMANENTEMENTE'},cookie))).status,403);
+  row.can_purge=true;
+  assert.equal((await handler.fetch(req(`/api/interview-admin?id=${id}&action=purge`,'DELETE',{revision:1,confirmation:'ELIMINAR PERMANENTEMENTE'},cookie))).status,200);
+});

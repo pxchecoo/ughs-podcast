@@ -455,7 +455,7 @@ td { padding: 14px 12px; border-top: 1px solid var(--line); font-size: 0.86rem; 
 .interview-toolbar input { padding: 12px 16px; }
 .interview-admin-panel select, .interview-admin-panel textarea { background: var(--surface-strong); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-sm); font: inherit; width: 100%; padding: 14px; }
 .interview-admin-panel textarea { resize: vertical; }
-.interview-admin-panel :focus-visible, #staff-login-form :focus-visible { outline: 3px solid var(--accent-dark); outline-offset: 3px; }
+.interview-admin-panel :focus-visible, #interview-delete-dialog :focus-visible, #staff-login-form :focus-visible { outline: 3px solid var(--accent-dark); outline-offset: 3px; }
 .interview-empty { text-align: center; padding: 35px 15px; color: var(--muted); }
 .interview-pagination, .interview-sensitive { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
 #interview-detail { margin-top: 30px; border-top: 1px solid var(--line); padding-top: 24px; }
@@ -472,3 +472,10 @@ td { padding: 14px 12px; border-top: 1px solid var(--line); font-size: 0.86rem; 
 #interview-admin-status { color: var(--muted); }
 #interview-admin-status[data-state="success"] { color: #226b4a; }
 #interview-contact.secondary-button { display: inline-flex; padding: 12px 18px; text-decoration: none; }
+#interview-delete-dialog { width: min(480px, calc(100% - 32px)); max-height: calc(100dvh - 48px); overflow: auto; padding: clamp(24px, 5vw, 36px); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-strong); color: var(--ink); box-shadow: var(--shadow); }
+#interview-delete-dialog::backdrop { background: color-mix(in srgb, var(--ink) 32%, transparent); }
+#interview-delete-dialog h3 { margin-top: 0; }
+#interview-delete-dialog p { line-height: 1.7; }
+#interview-delete-error { color: var(--accent-dark); }
+#interview-delete-dialog input { padding: 12px 16px; }
+#interview-view-controls [aria-pressed="true"] { border-color: var(--accent-dark); }

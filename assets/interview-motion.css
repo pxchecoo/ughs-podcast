@@ -1,21 +1,21 @@
 /* Shared timings only; all resting brand/layout rules remain in the existing CSS. */
 :root { --interview-ease: cubic-bezier(.22, 1, .36, 1); }
-:is(#interviews, #interview-requests, #health-panel) button {
+:is(#interviews, #interview-requests, #health-panel, #interview-delete-dialog) button {
   transition: transform 180ms var(--interview-ease), opacity 180ms ease, box-shadow 180ms ease;
 }
-:is(#interviews, #interview-requests, #health-panel) button:disabled { transform: none; }
+:is(#interviews, #interview-requests, #health-panel, #interview-delete-dialog) button:disabled { transform: none; }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  :is(#interviews, #interview-requests, #health-panel) button:not(:disabled):hover { transform: translateY(-1px); }
+  :is(#interviews, #interview-requests, #health-panel, #interview-delete-dialog) button:not(:disabled):hover { transform: translateY(-1px); }
 }
 @media (prefers-reduced-motion: no-preference) {
-  :is(#interviews, #interview-requests, #health-panel) button:not(:disabled):active { transform: scale(.975); transition-duration: 100ms; }
-  :is(#interviews, #interview-requests, #health-panel) button[data-motion-busy] { animation: interview-working 1100ms ease-in-out infinite alternate; }
+  :is(#interviews, #interview-requests, #health-panel, #interview-delete-dialog) button:not(:disabled):active { transform: scale(.975); transition-duration: 100ms; }
+  :is(#interviews, #interview-requests, #health-panel, #interview-delete-dialog) button[data-motion-busy] { animation: interview-working 1100ms ease-in-out infinite alternate; }
   @keyframes interview-working { from { opacity: .62; } to { opacity: .88; } }
 }
 .interview-motion-layer { position: fixed; inset: 0; z-index: 30; overflow: clip; pointer-events: none; }
 .interview-motion-ghost { position: absolute !important; margin: 0 !important; pointer-events: none; transform-origin: 0 0; overflow: clip; }
 tr.interview-motion-ghost { display: table; table-layout: fixed; border-collapse: collapse; }
-.interview-motion-source { visibility: hidden !important; }
+.interview-motion-source { opacity: 0 !important; }
 /* Root snapshots have no animation; only explicitly paired interview elements move. */
 :root[data-interview-transition]::view-transition { pointer-events: none; }
 :root[data-interview-transition]::view-transition-group(root) { animation: none; }
@@ -25,7 +25,7 @@ tr.interview-motion-ghost { display: table; table-layout: fixed; border-collapse
 :root[data-interview-transition]::view-transition-image-pair(interview-shared-0) { overflow: clip; }
 :root[data-interview-transition]::view-transition-old(*), :root[data-interview-transition]::view-transition-new(*) { animation-duration: 260ms; animation-timing-function: var(--interview-ease); mix-blend-mode: normal; }
 @media (prefers-reduced-motion: reduce) {
-  :is(#interviews, #interview-requests, #health-panel) button { transition: none; animation: none; }
-  :is(#interviews, #interview-requests, #health-panel) button:is(:hover, :active) { transform: none; }
+  :is(#interviews, #interview-requests, #health-panel, #interview-delete-dialog) button { transition: none; animation: none; }
+  :is(#interviews, #interview-requests, #health-panel, #interview-delete-dialog) button:is(:hover, :active) { transform: none; }
   :root[data-interview-transition]::view-transition-group(*), :root[data-interview-transition]::view-transition-old(*), :root[data-interview-transition]::view-transition-new(*) { animation: none !important; }
 }

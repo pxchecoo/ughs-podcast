@@ -9,7 +9,7 @@ const browser = await (engine === 'webkit' ? webkit : chromium).launch({ headles
 const output = `artifacts/qa/motion${engine === 'webkit' ? '/webkit' : ''}`;
 await mkdir(output, { recursive: true });
 const report = [], baselineComparisons = [];
-const staff = { role: 'admin', can_export: true, can_delete: true };
+const staff = { role: 'admin', can_export: true, can_delete: true, can_purge: true };
 const rows = Array.from({ length: 6 }, (_, i) => ({
   id: `11111111-1111-4111-8111-11111111111${i}`, full_name: `Persona ${i + 1}`, topic: `Historia ${i + 1}`,
   email: 'example@example.test', motivation: 'Una experiencia escolar de prueba.', school_affiliation: null,
@@ -20,11 +20,12 @@ const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function settled(page) {
   await page.waitForFunction(() => !document.querySelector('[data-interview-transition], .interview-motion-layer') && !document.getAnimations().some(a => {
     const el = a.effect?.target;
-    return a.playState === 'running' && el instanceof Element && (el.closest('#interviews, #interview-requests, #health-panel') || el.closest('.interview-motion-layer'));
+    return a.playState === 'running' && el instanceof Element && (el.closest('#interviews, #interview-requests, #health-panel, #interview-delete-dialog') || el.closest('.interview-motion-layer'));
   }));
 }
 async function clean(page) {
   await settled(page);
+  await page.waitForFunction(() => !document.getElementById('interview-staff-content')?.style.transform);
   assert.equal(await page.locator('.interview-motion-source, [data-motion-busy]').count(), 0);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   assert.equal(await page.evaluate(() => [...document.querySelectorAll('[style]')].some(el => el.style.viewTransitionName && el.style.viewTransitionName !== 'none')), false);
@@ -77,6 +78,15 @@ async function setup({ width, mode, baseline = false }) {
         return route.fulfill({ json: { rows: [{ status: 'failed' }] } });
       }
       if (action === 'audit') return route.fulfill({ json: { events: [{ created_at: rows[0].created_at, event_type: 'reviewed', old_status: 'pending', new_status: 'in_review', notes_changed: true }] } });
+      if (request.method() === 'DELETE' || action === 'restore') {
+        state.deletions = (state.deletions ?? 0) + 1;
+        await pause(220);
+        if (state.failDeletion) return route.fulfill({ status: 503, json: { error: { message: 'No se pudo completar la operación de prueba.' } } });
+        const row = state.data.find(row => row.id === id);
+        if (action === 'purge') state.data = state.data.filter(row => row.id !== id);
+        else { row.deleted_at = action === 'restore' ? null : '2026-11-09T14:00:00Z'; row.revision++; }
+        return route.fulfill({ json: { ok: true } });
+      }
       if (request.method() === 'PATCH') {
         state.patch++; await pause(120);
         const row = state.data.find(row => row.id === id); Object.assign(row, request.postDataJSON()); row.revision++;
@@ -85,7 +95,7 @@ async function setup({ width, mode, baseline = false }) {
       if (id) { await pause(state.detailRace && id === rows[0].id ? 180 : 20); return route.fulfill({ json: { row: state.data.find(row => row.id === id) } }); }
       const q = url.searchParams.get('q'), status = url.searchParams.get('status'), order = url.searchParams.get('order');
       await pause(q === 'slow' ? 180 : 20);
-      let selected = q === 'empty' ? [] : state.data.filter(row => !status || row.status === status);
+      let selected = q === 'empty' ? [] : state.data.filter(row => (!!row.deleted_at === (url.searchParams.get('view') === 'trash')) && (!status || row.status === status));
       if (order === 'asc') selected = [...selected].reverse();
       const pageNumber = Number(url.searchParams.get('page') || 1);
       return route.fulfill({ json: { rows: selected.slice((pageNumber - 1) * 3, pageNumber * 3), hasMore: pageNumber * 3 < selected.length } });
@@ -143,7 +153,7 @@ try {
     assert.equal(await page.locator('#interview-detail-title').evaluate(el => el === document.activeElement), true);
     // WebKit's screenshot helper inserts an inline stylesheet. Keep the admin's
     // strict production CSP; capture visual artifacts in Chromium instead.
-    if (engine === 'chromium') await page.screenshot({ path: `${output}/admin-${width}-${mode}.png`, fullPage: true });
+    if (engine === 'chromium') await page.screenshot({ path: `${output}/admin-${width}-${mode}.png` });
     await page.locator('#interview-review-status').selectOption('in_review'); await page.locator('#interview-notes').fill('Nota conservada durante el guardado.');
     await page.locator('#interview-save').click(); await page.waitForFunction(() => document.getElementById('interview-admin-status').textContent === 'Cambios guardados.'); await settled(page);
     assert.equal(state.patch, 1); assert.equal(state.data[0].internal_notes, 'Nota conservada durante el guardado.');
@@ -190,6 +200,69 @@ try {
       await page.locator('#interview-close').evaluate(button => button.click()); await page.locator('#interview-detail').waitFor({ state: 'hidden' });
     }
     await page.setViewportSize({ width: width + 1, height: 1000 }); await page.setViewportSize({ width, height: 1000 }); await clean(page);
+    // Destructive actions stay in a native modal until server confirmation.
+    await page.locator('#interview-rows button').first().click(); await settled(page);
+    const deletedId = await page.locator('#interview-rows tr').first().getAttribute('data-request-id');
+    const originalCount = await page.locator('#interview-rows tr').count();
+    await page.locator('#interview-delete').click(); await settled(page);
+    assert.equal(await page.locator('#interview-delete-title').textContent(), '¿Eliminar esta solicitud?');
+    await page.keyboard.press('Tab');
+    assert.equal(await page.locator('#interview-delete-dialog').evaluate(el => el.contains(document.activeElement)), true);
+    await page.keyboard.press('Escape'); await page.locator('#interview-delete-dialog').waitFor({ state: 'hidden' });
+    assert.equal(state.deletions ?? 0, 0);
+    assert.equal(await page.locator('#interview-delete').evaluate(el => el === document.activeElement), true);
+    await page.locator('#interview-delete').click(); await page.locator('#interview-delete-cancel').click();
+    await page.locator('#interview-delete-dialog').waitFor({ state: 'hidden' }); assert.equal(state.deletions ?? 0, 0);
+    state.failDeletion = true;
+    await page.locator('#interview-delete').click(); await page.locator('#interview-delete-confirm').dblclick();
+    assert.equal(await page.locator('#interview-delete-dialog').getAttribute('aria-busy'), 'true');
+    await page.waitForFunction(() => !document.getElementById('interview-delete-confirm').disabled); await settled(page);
+    assert.equal(state.deletions, 1);
+    assert.match(await page.locator('#interview-delete-error').textContent(), /No se pudo/);
+    assert.equal(await page.locator('#interview-rows tr').count(), originalCount);
+    assert.equal(state.data.find(r => r.id === deletedId).deleted_at, undefined);
+    state.failDeletion = false;
+    // The row remains until success. Capture its ghost contracting while survivors FLIP.
+    await page.locator('#interview-delete-confirm').click();
+    assert.equal(await page.locator(`#interview-rows tr[data-request-id="${deletedId}"]`).count(), 1);
+    if (mode !== 'reduced') {
+      await page.waitForFunction(() => document.getAnimations().some(a => a.effect?.target?.matches?.('tr.interview-motion-ghost') && a.effect.getKeyframes().some(f => f.transform === 'scaleY(0)')));
+    }
+    await page.waitForFunction(() => document.getElementById('interview-admin-status').textContent === 'Solicitud enviada a la papelera.'); await clean(page);
+    assert.equal(await page.locator(`#interview-rows tr[data-request-id="${deletedId}"]`).count(), 0);
+    assert.equal(await page.locator('#interview-search').inputValue(), '');
+    await page.locator('#interview-trash-view').click(); await page.waitForFunction(() => !document.getElementById('interview-search-button').disabled); await settled(page);
+    await page.locator('#interview-rows button').first().click(); await settled(page);
+    assert.equal(await page.locator('#interview-review-form').isVisible(), false);
+    await page.locator('#interview-restore').click(); await page.locator('#interview-delete-confirm').click();
+    await page.waitForFunction(() => document.getElementById('interview-admin-status').textContent === 'Solicitud restaurada.'); await clean(page);
+    assert.equal(state.data.find(r => r.id === deletedId).deleted_at, null);
+    await page.locator('#interview-active-view').click(); await page.waitForFunction(() => !document.getElementById('interview-search-button').disabled); await page.locator('#interview-rows button').first().waitFor(); await settled(page);
+    await page.locator('#interview-rows button').first().click(); await settled(page);
+    await page.locator('#interview-delete').click(); await page.locator('#interview-delete-confirm').click();
+    await page.waitForFunction(() => document.getElementById('interview-admin-status').textContent === 'Solicitud enviada a la papelera.'); await settled(page);
+    await page.locator('#interview-trash-view').click(); await page.waitForFunction(() => !document.getElementById('interview-search-button').disabled); await page.locator('#interview-rows button').first().waitFor(); await settled(page);
+    await page.locator('#interview-rows button').first().click(); await settled(page);
+    await page.locator('#interview-purge').click(); await page.locator('#interview-delete-confirm').click(); await settled(page);
+    const callsBeforePurge = state.deletions;
+    await page.locator('#interview-delete-confirm').click(); await settled(page);
+    assert.equal(state.deletions, callsBeforePurge);
+    await page.locator('#interview-purge-text').fill('ELIMINAR PERMANENTEMENTE');
+    if (engine === 'chromium') await page.screenshot({ path: `${output}/confirmation-${width}-${mode}.png` });
+    await page.locator('#interview-delete-confirm').click();
+    await page.waitForFunction(() => document.getElementById('interview-admin-status').textContent === 'Solicitud eliminada permanentemente.'); await clean(page);
+    assert.equal(state.data.some(r => r.id === deletedId), false);
+    await page.locator('#interview-active-view').click(); await page.waitForFunction(() => !document.getElementById('interview-search-button').disabled); await page.locator('#interview-rows button').first().waitFor(); await settled(page);
+    // Last row on a later page: move back while preserving search/status/order.
+    state.data = state.data.slice(0, 4); state.data.forEach(r => { r.status = 'pending'; });
+    await search(page, '', 'asc', 'pending');
+    await page.locator('#interview-next').click(); await page.waitForFunction(() => document.getElementById('interview-page').textContent === 'Página 2'); await settled(page);
+    assert.equal(await page.locator('#interview-rows tr').count(), 1);
+    await page.locator('#interview-rows button').first().click(); await settled(page);
+    await page.locator('#interview-delete').click(); await page.locator('#interview-delete-confirm').click();
+    await page.waitForFunction(() => document.getElementById('interview-admin-status').textContent === 'Solicitud enviada a la papelera.'); await clean(page);
+    assert.equal(await page.locator('#interview-page').textContent(), 'Página 1');
+    assert.equal(await page.locator('#interview-order').inputValue(), 'asc'); assert.equal(await page.locator('#interview-filter').inputValue(), 'pending');
     const evidence = await page.evaluate(() => window.motionEvidence);
     if (mode === 'native') assert.ok(evidence.nativeReady >= 2, JSON.stringify(evidence));
     if (mode === 'reduced') assert.equal(evidence.animations, 0);
@@ -202,10 +275,13 @@ try {
     await p.goto(base); await p.locator('#interviews').waitFor({ state: 'visible' });
     await p.locator('#interview-toggle').focus(); await p.keyboard.press('Enter'); await settled(p);
     assert.equal(await p.locator('#interview-full_name').evaluate(el => el === document.activeElement), true);
+    await p.locator('#interview-full_name').fill('Datos conservados');
     // Reverse the expansion before its previous frames finish.
     await p.locator('#interview-toggle').evaluate(button => { for (let i = 0; i < 7; i++) button.click(); });
-    assert.equal(await p.locator('#interview-form-shell').isVisible(), false); await settled(p);
+    await p.locator('#interview-form-shell').waitFor({ state: 'hidden' }); await settled(p);
     await p.locator('#interview-toggle').click(); await settled(p);
+    assert.equal(await p.locator('#interview-full_name').inputValue(), 'Datos conservados');
+    await p.locator('#interview-full_name').fill('');
     for (let i = 0; i < 3; i++) {
       await p.locator('#interview-toggle').evaluate(button => button.click()); await pause(60);
       await p.locator('#interview-toggle').evaluate(button => button.click()); await pause(60);
@@ -222,7 +298,10 @@ try {
     // Computed CSS width serialization can round by one 1/64px layout unit.
     assert.ok(Math.abs(normalSize.width - loadingSize.width) < .1); assert.ok(Math.abs(normalSize.height - loadingSize.height) < .1);
     assert.equal(await p.locator('#interview-success').isVisible(), false);
+    // A response arriving during a new expansion must own the final UI state.
+    await p.locator('#interview-toggle').evaluate(button => { button.click(); button.click(); });
     await p.locator('#interview-success').waitFor({ state: 'visible' }); await settled(p);
+    assert.equal(await p.locator('#interview-form-shell').isVisible(), false);
     assert.equal(pub.state.posts[0].submission_key, pub.state.posts[1].submission_key);
     assert.equal(await p.locator('#interview-success').evaluate(el => el === document.activeElement), true);
     await clean(p); assert.deepEqual(pub.errors, []);
@@ -230,7 +309,7 @@ try {
     const publicEvidence = await p.evaluate(() => window.motionEvidence);
     if (mode === 'reduced') assert.equal(publicEvidence.animations, 0);
     report.push({ surface: 'public', width, mode, ...publicEvidence }); await p.close();
-    console.log(`PASS ${width}px ${mode}: filters, identity, pagination, empty, racing responses, details, focus, notes, audit, health, notices, form, retry, success, cleanup`);
+    console.log(`PASS ${width}px ${mode}: filters, identity, pagination, empty, racing responses, details, focus, notes, audit, health, notices, confirmation, trash, restore, purge, row collapse, form, retry, success, cleanup`);
   }
   // Optional pixel/geometry comparison with the original files saved before edits.
   if (process.env.INTERVIEW_MOTION_BASELINE) {
@@ -275,4 +354,14 @@ try {
   }
   await writeFile(`${output}/${process.env.INTERVIEW_MOTION_BASELINE_ONLY ? 'baseline-report' : 'report'}.json`, JSON.stringify({ browser: engine, scenarios: report, restingDesign: baselineComparisons }, null, 2));
   console.log(`${report.length} motion scenario groups passed, with isolated API fixtures; no external service was called.`);
+} catch (error) {
+  for (const context of browser.contexts()) for (const page of context.pages()) {
+    if (engine === 'chromium') await page.screenshot({ path: `${output}/failure.png`, fullPage: true }).catch(() => {});
+    console.error(await page.evaluate(() => ({
+      inert: [...document.querySelectorAll('[inert]')].map(el => el.id),
+      sources: [...document.querySelectorAll('.interview-motion-source')].map(el => el.id || el.tagName),
+      animations: document.getAnimations().map(a => ({ target: a.effect?.target?.id, playState: a.playState }))
+    })).catch(() => null));
+  }
+  throw error;
 } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }

@@ -84,6 +84,7 @@
           <p class="panel-kicker">University en Vivo</p><h2 id="interview-admin-title">Solicitudes de entrevistas</h2>
           <div id="interview-staff-prompt"><p>Inicia sesión con tu cuenta personal para revisar solicitudes.</p><button id="staff-open-login" class="secondary-button" type="button">Usar cuenta personal</button></div>
           <div id="interview-staff-content" hidden>
+            <div class="interview-sensitive" id="interview-view-controls" hidden><button id="interview-active-view" class="secondary-button" type="button" aria-pressed="true">Solicitudes activas</button><button id="interview-trash-view" class="secondary-button" type="button" aria-pressed="false">Papelera</button></div>
             <form id="interview-search-form" class="interview-toolbar"><div><label for="interview-search">Buscar por nombre o tema</label><input type="search" id="interview-search" maxlength="80" /></div><div><label for="interview-filter">Estado</label><select id="interview-filter"><option value="">Todos</option><option value="pending">Pendiente</option><option value="in_review">En revisión</option><option value="approved">Aprobada</option><option value="rejected">Rechazada</option></select></div><div><label for="interview-order">Fecha</label><select id="interview-order"><option value="desc">Más recientes</option><option value="asc">Más antiguas</option></select></div><button id="interview-search-button" class="secondary-button" type="submit">Buscar</button></form>
             <p id="interview-admin-status" class="form-status" role="status"></p>
             <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Tema</th><th>Fecha</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="interview-rows"></tbody></table></div>
@@ -91,9 +92,10 @@
             <div class="interview-pagination"><button id="interview-prev" type="button" class="secondary-button" disabled>Anterior</button><span id="interview-page">Página 1</span><button id="interview-next" type="button" class="secondary-button" disabled>Siguiente</button></div>
             <section id="interview-detail" aria-labelledby="interview-detail-title" hidden><div class="panel-heading"><h3 id="interview-detail-title" tabindex="-1"></h3><button id="interview-close" type="button" class="secondary-button">Cerrar detalles</button></div><dl id="interview-detail-data"></dl><a id="interview-contact" class="secondary-button">Contactar por correo</a><p>Antes de grabar o publicar, gestiona los permisos independientes correspondientes.</p>
               <form id="interview-review-form"><label for="interview-review-status">Estado</label><select id="interview-review-status"><option value="pending">Pendiente</option><option value="in_review">En revisión</option><option value="approved">Aprobada</option><option value="rejected">Rechazada</option></select><p class="updated-at">Para aprobar, pasa primero por En revisión. Una decisión final puede reabrirse para revisión.</p><label for="interview-notes">Notas internas</label><textarea id="interview-notes" maxlength="4000" rows="5"></textarea><button id="interview-save" class="primary-button" type="submit">Guardar cambios</button></form>
-              <div class="interview-sensitive"><button id="interview-audit-button" class="secondary-button" type="button" hidden>Ver historial</button><button id="interview-export" class="secondary-button" type="button" hidden>Exportar solicitud</button><button id="interview-delete" class="logout-button" type="button" hidden>Eliminar permanentemente</button></div><ul id="interview-audit" hidden></ul>
+              <div class="interview-sensitive"><button id="interview-audit-button" class="secondary-button" type="button" hidden>Ver historial</button><button id="interview-export" class="secondary-button" type="button" hidden>Exportar solicitud</button><button id="interview-delete" class="logout-button" type="button" hidden>Eliminar solicitud</button><button id="interview-restore" class="secondary-button" type="button" hidden>Restaurar solicitud</button><button id="interview-purge" class="logout-button" type="button" hidden>Eliminar permanentemente</button></div><ul id="interview-audit" hidden></ul>
             </section>
           </div>
+
         </section>
         <article class="panel interview-health-panel" id="health-panel" hidden aria-labelledby="health-title"><p class="panel-kicker">Mantenimiento</p><h3 id="health-title">Estado de la base de datos</h3><strong id="health-state" role="status">Estado desconocido</strong><p id="health-details"></p><button id="health-check" class="secondary-button" type="button">Comprobar conexión</button><p id="notification-state" class="updated-at"></p><button id="notification-retry" class="secondary-button" type="button">Procesar avisos pendientes</button></article>
 
@@ -157,5 +159,13 @@
       </div>
     </section>
   </main>
+
+          <dialog id="interview-delete-dialog" aria-labelledby="interview-delete-title" aria-describedby="interview-delete-copy">
+            <h3 id="interview-delete-title">¿Eliminar esta solicitud?</h3>
+            <p id="interview-delete-copy">Esta solicitud se eliminará de la lista de entrevistas. ¿Deseas continuar?</p>
+            <div id="interview-purge-verification" hidden><label for="interview-purge-text">Escribe ELIMINAR PERMANENTEMENTE para confirmar.</label><input id="interview-purge-text" autocomplete="off" maxlength="30" /></div>
+            <p id="interview-delete-error" role="alert"></p>
+            <div class="interview-sensitive"><button id="interview-delete-cancel" class="secondary-button" type="button" autofocus>Cancelar</button><button id="interview-delete-confirm" class="logout-button" type="button">Eliminar solicitud</button></div>
+          </dialog>
 </body>
 </html>

@@ -1338,7 +1338,7 @@
       .dock-controls { min-width: 0; width: 100%; }
       .dock {
         display: grid;
-        grid-template-columns: 48px 1fr;
+        grid-template-columns: minmax(0, 1fr);
       }
       .dock-controls {
         grid-column: 1 / -1;
@@ -1708,14 +1708,6 @@
   </div>
 
   <div class="dock" aria-label="Reproductor inferior">
-    <div class="dock-badge" id="dockBadge">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 3v13"></path>
-        <path d="M18 9a6 6 0 0 1-12 0"></path>
-        <path d="M8 21h8"></path>
-        <path d="M12 17v4"></path>
-      </svg>
-    </div>
     <div class="dock-copy">
       <strong id="dockTitle">Así empezó todo…</strong>
       <span id="dockMeta">Vida escolar · tema inicial</span>
@@ -1776,7 +1768,6 @@
     const durationTimeEl = document.getElementById('durationTime');
 
     const mainIcon = document.getElementById('mainIcon');
-    const dockBadge = document.getElementById('dockBadge');
 
     let activeId = '1';
     let isPlaying = false;
@@ -1822,7 +1813,6 @@
 
       const iconMarkup = icons[card.dataset.icon] || icons.mic;
       mainIcon.innerHTML = iconMarkup;
-      dockBadge.innerHTML = iconMarkup;
 
       audio.src = card.dataset.audio;
       audio.load();

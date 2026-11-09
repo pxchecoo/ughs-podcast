@@ -1,5 +1,6 @@
 [hidden] { display: none !important; }
 .interview-card { padding: clamp(24px, 5vw, 56px); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-xl); box-shadow: var(--shadow); }
+.interview-form-shell { display: flow-root; overflow-anchor: none; }
 .interview-card h2 { font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.045em; margin: 12px 0; line-height: 1.1; }
 .interview-card p { max-width: 700px; line-height: 1.7; }
 .interview-kicker { color: #7b3d47; font-weight: 700; }

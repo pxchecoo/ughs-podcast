@@ -4,6 +4,7 @@
   const easing = 'cubic-bezier(.22, 1, .36, 1)';
   const running = new Set(), channels = new WeakMap(), textSnapshots = new Map();
   let shared = null;
+  const disclosures = new Map();
   const enabled = () => !preference.matches && typeof Element.prototype.animate === 'function';
   const rect = el => el?.isConnected && !el.hidden ? el.getBoundingClientRect() : null;
   const visible = box => box && box.width > 0 && box.height > 0;
@@ -48,8 +49,9 @@
 
   // Measure the current presentation before cancelling: rapid reversals start where the
   // previous animation actually is, rather than at its last committed layout.
-  function layout(root, update, { elements = [], enter = [], leave = [], direction = 1 } = {}) {
+  function layout(root, update, { elements = [], enter = [], leave = [], direction = 1, collapse = false } = {}) {
     if (!root) { update(); return; }
+    const clip = !root.closest('#interview-requests, #interview-delete-dialog');
     const nodes = [...new Set(elements)].filter(Boolean);
     const before = new Map(nodes.map(el => [el, rect(el)]));
     const outgoing = enabled() ? leave.filter(el => visible(rect(el))).map(el => snapshot(el, rect(el))) : [];
@@ -58,14 +60,14 @@
     update();
     outgoing.forEach(({layer, ghost}) => {
       document.body.append(layer);
-      const animation = animate(ghost, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: `translateX(${-direction * 12}px)`, clipPath: 'inset(0 0 100% 0)' }], { duration: 180 });
+      const animation = animate(ghost, [{ opacity: 1, transform: 'none', clipPath: 'inset(0)' }, { opacity: 0, transform: collapse ? 'scaleY(0)' : `translateX(${-direction * 12}px)`, clipPath: 'inset(0 0 100% 0)' }], { duration: collapse ? 320 : 180 });
       if (animation) animation.finished.then(() => layer.remove(), () => layer.remove());
       else layer.remove();
     });
     if (!enabled() || !visible(rect(root))) return;
     const afterHeight = rect(root).height;
     if (height != null && Math.abs(height - afterHeight) > .5) {
-      animate(root, [{ height: `${height}px`, overflow: 'clip' }, { height: `${afterHeight}px`, overflow: 'clip' }], { channel: 'height', duration: 380 });
+      animate(root, [{ height: `${height}px`, ...(clip ? { overflow: 'clip' } : {}) }, { height: `${afterHeight}px`, ...(clip ? { overflow: 'clip' } : {}) }], { channel: 'height', duration: 380 });
     }
     // Read every destination before starting animations. Nested cells compensate
     // for their moving row, so column reflow and row travel never double up.
@@ -83,8 +85,8 @@
     });
     enter.filter(Boolean).forEach((el, index) => {
       if (!visible(before.get(el)) && visible(rect(el))) animate(el, [
-        { opacity: 0, transform: `translateX(${direction * 12}px)`, clipPath: 'inset(0 0 100% 0)' },
-        { opacity: 1, transform: 'none', clipPath: 'inset(0)' }
+        { opacity: 0, transform: `translateX(${direction * 12}px)`, ...(clip ? { clipPath: 'inset(0 0 100% 0)' } : {}) },
+        { opacity: 1, transform: 'none', ...(clip ? { clipPath: 'inset(0)' } : {}) }
       ], { duration: 300, delay: Math.min(index * 22, 110) });
     });
   }
@@ -110,7 +112,8 @@
       if (animation) animation.finished.then(cleanup, cleanup);
       else cleanup();
     }
-    animate(el, [{ opacity: 0, clipPath: 'inset(100% 0 0 0)' }, { opacity: 1, clipPath: 'inset(0)' }], { duration: 220, channel: 'text' });
+    const clip = !el.closest('#interview-requests, #interview-delete-dialog');
+    animate(el, [{ opacity: 0, ...(clip ? { clipPath: 'inset(100% 0 0 0)' } : {}) }, { opacity: 1, ...(clip ? { clipPath: 'inset(0)' } : {}) }], { duration: 220, channel: 'text' });
     if (el.tagName === 'BUTTON' && visible(first) && visible(last) && Math.abs(first.width - last.width) > .5) {
       animate(el, [{ width: `${first.width}px` }, { width: `${last.width}px` }], { duration: 240, channel: 'width' });
     }
@@ -141,6 +144,32 @@
     animate(button, [{ transform: 'scale(.985)' }, { transform: 'scale(1)' }], { channel: 'feedback', duration: 240 });
   }
 
+  // One measured expansion owns the flow; content never travels from the CTA's
+  // coordinates. Reversals start at the presented height and opacity. No RAF reads.
+  function disclose(shell, open, { focus } = {}) {
+    const height = shell.hidden ? 0 : shell.getBoundingClientRect().height;
+    const opacity = shell.hidden ? 0 : Number(getComputedStyle(shell).opacity);
+    const previous = disclosures.get(shell);
+    previous?.cancel();
+    shell.hidden = false; shell.inert = true;
+    const target = open ? shell.getBoundingClientRect().height : 0;
+    let animation, reveal, cancelled = false, completed = false;
+    const finish = () => {
+      if (cancelled || completed) return;
+      completed = true;
+      disclosures.delete(shell); shell.hidden = !open; shell.inert = !open;
+      animation?.cancel(); reveal?.cancel();
+      focus?.();
+    };
+    const state = { finish, cancel() { cancelled = true; animation?.cancel(); reveal?.cancel(); disclosures.delete(shell); } };
+    disclosures.set(shell, state);
+    if (!enabled()) { finish(); return Promise.resolve(); }
+    const duration = open ? 360 : 280;
+    animation = animate(shell, [{ height: `${height}px`, overflow: 'clip' }, { height: `${target}px`, overflow: 'clip' }], { duration, channel: 'disclosure' });
+    reveal = animate(shell, open ? [{ opacity }, { opacity: 1 }] : [{ opacity, offset: 0 }, { opacity: 0, offset: .55 }, { opacity: 0, offset: 1 }], { duration: open ? 200 : duration, delay: open && height < 1 ? 130 : 0, channel: 'disclosure-content' });
+    return animation.finished.then(finish, () => { if (!cancelled) finish(); });
+  }
+
   function cancelShared() {
     if (!shared) return;
     const previous = shared; shared = null; previous.cancelled = true;
@@ -151,7 +180,7 @@
 
   // Match a source to a destination without changing the final DOM structure. The
   // title can travel independently so long panels never stretch their typography.
-  function morph(root, from, to, update, { focus, parts = [], reverse = false, native = true } = {}) {
+  function morph(root, from, to, update, { focus, parts = [], reverse = false, native = true, settle = false } = {}) {
     cancelShared();
     if (!enabled() || !visible(rect(from)) || !to?.isConnected) {
       layout(root, update, { elements: [...root.children], enter: [to] });
@@ -189,7 +218,7 @@
       transition.finished.finally(() => {
         if (shared === state) { state.cleanup(); shared = null; }
       }).catch(() => {});
-      return transition.updateCallbackDone;
+      return settle ? transition.finished.catch(() => {}) : transition.updateCallbackDone;
     }
     const first = rect(from);
     // A temporary inert snapshot supplies the outgoing half on older browsers.
@@ -203,23 +232,25 @@
     const previousCleanup = state.cleanup;
     state.cleanup = () => { previousCleanup(); layer.remove(); from.classList.remove('interview-motion-source'); };
     const x = last.left - first.left, y = last.top - first.top;
+    const clip = !root.closest('#interview-requests, #interview-delete-dialog');
     const animation = animate(ghost, [
       { transform: 'none', width: `${first.width}px`, height: `${first.height}px`, opacity: 1 },
       { transform: `translate(${x}px, ${y}px)`, width: `${last.width}px`, height: `${last.height}px`, opacity: 0 }
     ], { duration: 380 });
     if (!reverse) animate(to, [
-      { transform: `translate(${-x}px, ${-y}px)`, clipPath: `inset(0 ${Math.max(0, last.width - first.width)}px ${Math.max(0, last.height - first.height)}px 0)`, opacity: 0 },
-      { transform: 'none', clipPath: 'inset(0)', opacity: 1 }
+      { transform: `translate(${-x}px, ${-y}px)`, ...(clip ? { clipPath: `inset(0 ${Math.max(0, last.width - first.width)}px ${Math.max(0, last.height - first.height)}px 0)` } : {}), opacity: 0 },
+      { transform: 'none', ...(clip ? { clipPath: 'inset(0)' } : {}), opacity: 1 }
     ], { duration: 380 });
     // Keep the reverse destination covered until its outgoing snapshot arrives.
     else animate(to, [{ opacity: 0 }, { opacity: 1 }], { duration: 380 });
     animation?.finished.then(() => {
       if (shared === state) { state.cleanup(); shared = null; }
     }, () => { if (shared === state) { state.cleanup(); shared = null; } });
-    focus?.(); return Promise.resolve();
+    focus?.(); return settle && animation ? animation.finished.catch(() => {}) : Promise.resolve();
   }
 
   function reset() {
+    [...disclosures.values()].forEach(state => state.finish());
     cancelShared(); [...running].forEach(animation => animation.cancel());
     [...textSnapshots.values()].forEach(cleanup => cleanup());
     document.querySelectorAll('.interview-motion-layer').forEach(el => el.remove());
@@ -229,5 +260,5 @@
   addEventListener('pagehide', reset);
   // An active snapshot must never prevent the next keyboard/pointer interaction.
   for (const type of ['pointerdown', 'keydown']) document.addEventListener(type, cancelShared, { capture: true });
-  window.InterviewMotion = { layout, text, busy, confirm, morph, reset, animate, enabled };
+  window.InterviewMotion = { layout, text, busy, confirm, morph, disclose, cancelDisclosure: shell => disclosures.get(shell)?.cancel(), reset, animate, enabled };
 })();

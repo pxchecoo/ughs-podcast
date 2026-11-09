@@ -23,17 +23,16 @@ async function init() {
     document.querySelectorAll('[data-interview-nav]').forEach(link => { link.hidden = false; });
   } catch { /* Feature remains hidden while unavailable. */ }
 }
-toggle.addEventListener('click', () => {
+toggle.addEventListener('click', event => {
   const open = toggle.getAttribute('aria-expanded') !== 'true';
-  motion.morph(card, open ? toggle : shell, open ? shell : toggle, () => {
-    toggle.setAttribute('aria-expanded', String(open)); shell.hidden = !open;
-  }, { native: false, reverse: !open, focus: () => {
-    if (open) form.elements.full_name.focus({ preventScroll: true });
-    else toggle.focus({ preventScroll: true });
+  toggle.setAttribute('aria-expanded', String(open));
+  if (!open && shell.contains(document.activeElement)) toggle.focus({ preventScroll: true });
+  // Pointer activation keeps focus on the CTA (and the mobile keyboard closed).
+  // Keyboard users enter the form only once its real layout is available.
+  const keyboard = event.detail === 0;
+  motion.disclose(shell, open, { focus: () => {
+    if (open && keyboard && document.activeElement === toggle) form.elements.full_name.focus({ preventScroll: true });
   } });
-  if (open) fields.forEach((field, i) => motion.animate(field, [
-    { opacity: 0, clipPath: 'inset(0 0 100% 0)' }, { opacity: 1, clipPath: 'inset(0)' }
-  ], { duration: 240, delay: Math.min(i * 24, 120), channel: 'reveal' }));
 });
 form.addEventListener('submit', async event => {
   event.preventDefault(); if (busy) return;
@@ -74,6 +73,7 @@ form.addEventListener('submit', async event => {
     }
     const success = document.getElementById('interview-success');
     await motion.morph(card, button, success, () => {
+      motion.cancelDisclosure(shell);
       shell.hidden = true; toggle.hidden = true; success.hidden = false;
     }, { parts: [[card, card]], focus: () => success.focus() });
     key = crypto.randomUUID(); pendingPayload = null;

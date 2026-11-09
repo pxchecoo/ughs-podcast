@@ -5,7 +5,10 @@
   const labels = { pending: 'Pendiente', in_review: 'En revisión', approved: 'Aprobada', rejected: 'Rechazada' };
   const dates = value => value ? new Intl.DateTimeFormat('es-PR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Puerto_Rico' }).format(new Date(value)) : 'No disponible';
   let staff = null, page = 1, current = null, generation = 0, detailGeneration = 0;
-  let origin = null, displayedPage = 1;
+  let origin = null, displayedPage = 1, view = 'active';
+  const dialog = byId('interview-delete-dialog');
+  let deletion = null, deletionBusy = false, dialogClosing = false, dialogOrigin = null;
+  const canDelete = () => staff?.role === 'admin' && staff.can_delete === true;
   async function api(path, options = {}) {
     let response;
     try { response = await fetch(path, { ...options, cache: 'no-store', credentials: 'same-origin', headers: { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...options.headers } }); }
@@ -24,8 +27,11 @@
     byId('staff-identity').textContent = staff ? (staff.role === 'admin' ? 'Cuenta personal · Administrador' : 'Cuenta personal · Moderadora') : '';
     byId('health-panel').hidden = staff?.role !== 'admin';
     byId('interview-audit').hidden = true;
+    byId('interview-view-controls').hidden = !canDelete();
     if (!staff) {
-      motion.reset(); current = null; origin = null; generation++; detailGeneration++;
+      motion.reset(); dialog.close(); deletion = null; view = 'active'; current = null; origin = null; generation++; detailGeneration++;
+      byId('interview-active-view').setAttribute('aria-pressed', 'true');
+      byId('interview-trash-view').setAttribute('aria-pressed', 'false');
       byId('interview-rows').replaceChildren(); byId('interview-detail').hidden = true;
       byId('interview-detail-data').replaceChildren(); byId('interview-detail-title').textContent = '';
       byId('interview-notes').value = ''; byId('interview-contact').removeAttribute('href');
@@ -43,15 +49,16 @@
     if (className) el.className = className; return el;
   }
   function message(text, state = 'info') { motion.text(byId('interview-admin-status'), text, listRoot); byId('interview-admin-status').dataset.state = state; }
-  async function loadList() {
+  async function loadList({ quiet = false, collapse = false } = {}) {
     if (!staff) return;
     const thisGeneration = ++generation;
-    message('Cargando solicitudes…'); motion.busy(byId('interview-search-button'), true); byId('interview-search-button').disabled = true;
+    if (!quiet) message('Cargando solicitudes…'); motion.busy(byId('interview-search-button'), true); byId('interview-search-button').disabled = true;
     byId('interview-rows').setAttribute('aria-busy', 'true');
-    const params = new URLSearchParams({ page, q: byId('interview-search').value.trim(), status: byId('interview-filter').value, order: byId('interview-order').value });
+    const params = new URLSearchParams({ page, view, q: byId('interview-search').value.trim(), status: byId('interview-filter').value, order: byId('interview-order').value });
     try {
       const data = await api(`/api/interview-admin?${params}`);
-      if (thisGeneration !== generation || !staff) return;
+      if (thisGeneration !== generation || !staff) return false;
+      if (!data.rows.length && page > 1) { page--; return await loadList({ quiet, collapse }); }
       const tbody = byId('interview-rows'), oldRows = [...tbody.children];
       const existing = new Map(oldRows.map(tr => [tr.dataset.requestId, tr]));
       const rows = data.rows.map(row => {
@@ -78,14 +85,15 @@
         oldRows.filter(tr => !rows.includes(tr)).forEach(tr => tr.remove());
         byId('interview-empty').hidden = data.rows.length > 0;
         const filtered = !!(params.get('q') || params.get('status') || page > 1);
-        byId('interview-empty-title').textContent = filtered ? 'No encontramos solicitudes con estos filtros.' : 'Todavía no tenemos solicitudes.';
-        byId('interview-empty-copy').textContent = filtered ? 'Prueba otra búsqueda o vuelve a la primera página.' : 'Cuando alguien quiera participar en University en Vivo, su solicitud aparecerá aquí.';
+        byId('interview-empty-title').textContent = filtered ? 'No encontramos solicitudes con estos filtros.' : (view === 'trash' ? 'La papelera está vacía.' : 'Todavía no tenemos solicitudes.');
+        byId('interview-empty-copy').textContent = filtered ? 'Prueba otra búsqueda o vuelve a la primera página.' : (view === 'trash' ? 'Las solicitudes eliminadas aparecerán aquí hasta su restauración o eliminación permanente autorizada.' : 'Cuando alguien quiera participar en University en Vivo, su solicitud aparecerá aquí.');
         byId('interview-prev').disabled = page === 1; byId('interview-next').disabled = !data.hasMore; motion.text(byId('interview-page'), `Página ${page}`, byId('interview-page').parentElement);
-      }, { elements: [...new Set([...oldRows, ...rows])].flatMap(tr => [tr, ...tr.children]).concat([...tbody.closest('table').querySelectorAll('th'), byId('interview-empty'), byId('interview-page').parentElement, detail]), enter: [...rows, byId('interview-empty')], leave: oldRows.filter(tr => !rows.includes(tr)), direction: page < displayedPage ? -1 : 1 });
+      }, { elements: [...new Set([...oldRows, ...rows])].flatMap(tr => [tr, ...tr.children]).concat([...tbody.closest('table').querySelectorAll('th'), byId('interview-empty'), byId('interview-page').parentElement, detail]), enter: [...rows, byId('interview-empty')], leave: oldRows.filter(tr => !rows.includes(tr)), direction: page < displayedPage ? -1 : 1, collapse });
       displayedPage = page;
       if (focused?.isConnected && rows.some(tr => tr.contains(focused))) focused.focus({ preventScroll: true });
-      message('');
-    } catch (e) { if (thisGeneration === generation) message(e.message); }
+      if (!quiet) message('');
+      return true;
+    } catch (e) { if (thisGeneration === generation) message(e.message); return false; }
     finally { if (thisGeneration === generation) { byId('interview-search-button').disabled = false; motion.busy(byId('interview-search-button'), false); byId('interview-rows').removeAttribute('aria-busy'); } }
   }
   async function openDetail(id, trigger) {
@@ -93,7 +101,7 @@
     motion.busy(trigger, true);
     message('Cargando detalles…');
     try {
-      const { row } = await api(`/api/interview-admin?id=${encodeURIComponent(id)}`);
+      const { row } = await api(`/api/interview-admin?id=${encodeURIComponent(id)}&view=${view}`);
       if (!staff || request !== detailGeneration) return;
       const from = detail.hidden ? trigger?.closest('tr') : detail;
       await motion.morph(byId('interview-requests'), from, detail, () => {
@@ -104,22 +112,28 @@
         for (const [label,value] of [['Nombre',row.full_name],['Correo',row.email],['Relación con la escuela',row.school_affiliation || 'No indicada'],['Motivación',row.motivation],['Experiencia previa',row.previous_experience === null ? 'Prefiere no responder' : row.previous_experience ? 'Sí' : 'No'],['Recibida',dates(row.created_at)],['Consentimiento',`${row.consent_version} · ${dates(row.consent_accepted_at)}`]]) details.append(make('dt',label),make('dd',value));
         byId('interview-review-status').value = row.status; byId('interview-notes').value = row.internal_notes ?? '';
         byId('interview-contact').href = `mailto:${encodeURIComponent(row.email)}?subject=${encodeURIComponent('University en Vivo — Solicitud de entrevista')}`;
-        byId('interview-export').hidden = !staff.can_export; byId('interview-delete').hidden = !staff.can_delete;
+        const deleted = !!row.deleted_at;
+        byId('interview-review-form').hidden = deleted;
+        byId('interview-contact').hidden = deleted;
+        byId('interview-export').hidden = deleted || !staff.can_export;
+        byId('interview-delete').hidden = deleted || !canDelete();
+        byId('interview-restore').hidden = !deleted || !canDelete();
+        byId('interview-purge').hidden = !deleted || !canDelete() || !staff.can_purge;
         byId('interview-audit-button').hidden = staff.role !== 'admin'; byId('interview-audit').hidden = true;
-        detail.hidden = false; message('');
+        detail.hidden = false; detail.inert = false; message('');
       }, { parts: [[from?.tagName === 'TR' ? from.children[1] : byId('interview-detail-title'), byId('interview-detail-title')]], focus: () => {
         if (staff && request === detailGeneration) byId('interview-detail-title').focus();
       } });
     } catch (e) { if (staff && request === detailGeneration) message(e.message); }
     finally { motion.busy(trigger, false); }
   }
-  function closeDetail() {
+  function closeDetail({ settle = false } = {}) {
     detailGeneration++;
     const trigger = origin?.isConnected ? origin : null;
     const row = trigger?.closest('tr');
     return motion.morph(byId('interview-requests'), detail, row, () => { detail.hidden = true; current = null; }, {
-      reverse: true, parts: [[byId('interview-detail-title'), row?.children[1]]],
-      focus: () => (trigger ?? byId('interview-search')).focus()
+      reverse: true, settle, parts: [[byId('interview-detail-title'), row?.children[1]]],
+      focus: () => (trigger ?? byId('interview-search')).focus({ preventScroll: true })
     });
   }
   async function loadHealth() {
@@ -183,11 +197,97 @@
       const url=URL.createObjectURL(new Blob([JSON.stringify(data.row,null,2)],{type:'application/json'})); const link=make('a');link.href=url;link.download=`solicitud-${current.id}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     } catch(e) { message(e.message); }
   });
-  byId('interview-delete').addEventListener('click',async()=>{
-    if(!current || prompt('Esta acción elimina permanentemente la solicitud y sus datos. Solo procede con una solicitud de eliminación autorizada. Escribe ELIMINAR para confirmar.') !== 'ELIMINAR')return;
-    try { await api(`/api/interview-admin?id=${current.id}`,{method:'DELETE',body:JSON.stringify({revision:current.revision,confirmation:'ELIMINAR'})});byId('interview-detail').hidden=true;current=null;await loadList();message('Solicitud eliminada. Se conservó un evento técnico sin datos personales.'); }
-    catch(e){message(e.message);}
+  function showDeletion(kind) {
+    if (!current || !canDelete() || deletionBusy || dialog.open || (kind === 'purge' && !staff.can_purge)) return;
+    deletion = { kind, id: current.id, revision: current.revision, stage: 1 };
+    dialogOrigin = byId({ trash: 'interview-delete', restore: 'interview-restore', purge: 'interview-purge' }[kind]);
+    byId('interview-delete-title').textContent = kind === 'restore' ? '¿Restaurar esta solicitud?' : kind === 'purge' ? '¿Eliminar permanentemente esta solicitud?' : '¿Eliminar esta solicitud?';
+    byId('interview-delete-copy').textContent = kind === 'restore' ? 'Esta solicitud volverá a la lista de entrevistas con su estado y datos conservados.' : kind === 'purge' ? 'Se borrarán sus datos personales y no podrás recuperarla. Esta acción requiere una confirmación adicional.' : 'Esta solicitud se eliminará de la lista de entrevistas. ¿Deseas continuar?';
+    byId('interview-delete-confirm').textContent = kind === 'restore' ? 'Restaurar solicitud' : kind === 'purge' ? 'Continuar' : 'Eliminar solicitud';
+    byId('interview-purge-verification').hidden = true; byId('interview-purge-text').value = '';
+    byId('interview-delete-error').textContent = ''; dialogClosing = false;
+    dialog.showModal();
+    motion.animate(dialog, [{ opacity: 0, transform: 'translateY(8px) scale(.97)', clipPath: 'inset(0 0 12% 0 round 24px)' }, { opacity: 1, transform: 'none', clipPath: 'inset(0 round 24px)' }], { duration: 260, channel: 'dialog' });
+    [...dialog.children].forEach((el, i) => motion.animate(el, [{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], { duration: 180, delay: 45 + i * 15, channel: 'dialog-content' }));
+  }
+  async function hideDeletion() {
+    if (!dialog.open || dialogClosing) return;
+    dialogClosing = true;
+    const animation = motion.animate(dialog, [{ opacity: Number(getComputedStyle(dialog).opacity), transform: getComputedStyle(dialog).transform }, { opacity: 0, transform: 'translateY(4px) scale(.98)' }], { duration: 160, channel: 'dialog' });
+    await animation?.finished.catch(() => {});
+    dialog.close(); dialogClosing = false; deletion = null;
+    if (staff && dialogOrigin?.isConnected) dialogOrigin.focus({ preventScroll: true });
+    dialogOrigin = null;
+  }
+  byId('interview-delete').addEventListener('click', () => showDeletion('trash'));
+  byId('interview-restore').addEventListener('click', () => showDeletion('restore'));
+  byId('interview-purge').addEventListener('click', () => showDeletion('purge'));
+  byId('interview-delete-cancel').addEventListener('click', () => { if (!deletionBusy) hideDeletion(); });
+  dialog.addEventListener('cancel', event => { event.preventDefault(); if (!deletionBusy) hideDeletion(); });
+  dialog.addEventListener('keydown', event => {
+    if (event.key !== 'Tab') return;
+    const controls = [...dialog.querySelectorAll('button:not(:disabled), input:not(:disabled)')].filter(el => el.getClientRects().length);
+    event.preventDefault();
+    if (!controls.length) return;
+    const index = controls.indexOf(document.activeElement);
+    const next = index < 0 ? (event.shiftKey ? controls.length - 1 : 0) : (index + (event.shiftKey ? -1 : 1) + controls.length) % controls.length;
+    controls[next].focus();
   });
+  byId('interview-delete-confirm').addEventListener('click', async () => {
+    if (!deletion || deletionBusy || dialogClosing) return;
+    if (deletion.kind === 'purge' && deletion.stage === 1) {
+      deletion.stage = 2;
+      motion.layout(dialog, () => {
+        byId('interview-purge-verification').hidden = false;
+        byId('interview-delete-confirm').textContent = 'Eliminar permanentemente';
+      }, { elements: [...dialog.children], enter: [byId('interview-purge-verification')] });
+      byId('interview-purge-text').focus({ preventScroll: true }); return;
+    }
+    if (deletion.kind === 'purge' && byId('interview-purge-text').value !== 'ELIMINAR PERMANENTEMENTE') {
+      motion.text(byId('interview-delete-error'), 'Escribe ELIMINAR PERMANENTEMENTE para confirmar.', dialog); return;
+    }
+    const operation = { ...deletion }, button = byId('interview-delete-confirm');
+    const label = button.textContent;
+    deletionBusy = true; motion.busy(button, true); button.disabled = true;
+    byId('interview-delete-cancel').disabled = true;
+    byId('interview-delete-error').textContent = '';
+    motion.text(button, 'Procesando…', dialog); dialog.setAttribute('aria-busy', 'true');
+    try {
+      const action = operation.kind === 'trash' ? '' : `&action=${operation.kind}`;
+      const result = await api(`/api/interview-admin?id=${operation.id}${action}`, { method: operation.kind === 'restore' ? 'POST' : 'DELETE', body: JSON.stringify({ revision: operation.revision, confirmation: operation.kind === 'restore' ? 'RESTAURAR' : operation.kind === 'purge' ? 'ELIMINAR PERMANENTEMENTE' : 'ELIMINAR' }) });
+      if (result.ok !== true) throw new Error('No pudimos confirmar la operación. Revisa los detalles antes de reintentar.');
+      if (!staff) return;
+      await hideDeletion();
+      if (current?.id === operation.id) {
+        await closeDetail({ settle: true });
+      }
+      const refreshed = await loadList({ quiet: true, collapse: true });
+      if (!staff) return;
+      if (!refreshed) {
+        const rows = [...byId('interview-rows').children], removed = rows.find(tr => tr.dataset.requestId === operation.id);
+        motion.layout(listRoot, () => removed?.remove(), { elements: rows, leave: removed ? [removed] : [], collapse: true });
+      }
+      const confirmation = { trash: 'Solicitud enviada a la papelera.', restore: 'Solicitud restaurada.', purge: 'Solicitud eliminada permanentemente.' }[operation.kind];
+      message(confirmation + (refreshed ? '' : ' No pudimos actualizar la paginación; reintenta la búsqueda.'), 'success');
+      byId('interview-search').focus({ preventScroll: true });
+    } catch (e) {
+      if (staff && dialog.open) motion.text(byId('interview-delete-error'), e.message, dialog);
+    } finally {
+      deletionBusy = false; button.disabled = false; byId('interview-delete-cancel').disabled = false;
+      motion.busy(button, false); button.textContent = label; dialog.removeAttribute('aria-busy');
+    }
+  });
+  async function changeView(next) {
+    if (deletionBusy || dialog.open || !canDelete() || view === next) return;
+    if (!detail.hidden) await closeDetail();
+    else detailGeneration++;
+    view = next; page = 1;
+    byId('interview-active-view').setAttribute('aria-pressed', String(view === 'active'));
+    byId('interview-trash-view').setAttribute('aria-pressed', String(view === 'trash'));
+    await loadList();
+  }
+  byId('interview-active-view').addEventListener('click', () => changeView('active'));
+  byId('interview-trash-view').addEventListener('click', () => changeView('trash'));
   byId('health-check').addEventListener('click',async()=>{
     const button=byId('health-check'); if (button.disabled) return; motion.busy(button, true);button.disabled=true;motion.text(byId('health-state'), 'Comprobando…', byId('health-panel'));
     try { await api('/api/database-health',{method:'POST'});await loadHealth(); }
