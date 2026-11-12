@@ -22,3 +22,14 @@
 /* Keep brand colors while meeting text contrast on the existing pink CTA. */
 #interviews .btn-primary { color: var(--text); }
 .interview-card input, .interview-card textarea, .interview-card select { scroll-margin-top: 110px; scroll-margin-bottom: 180px; }
+
+/* Contact additions reuse the existing field palette and radii. */
+#interview-phone-help { font-size: .85rem; line-height: 1.5; }
+.interview-contact-choice { border: 0; padding: 0; margin: 0; min-width: 0; }
+.interview-contact-choice legend { font-weight: 600; font-size: .9rem; padding: 0; margin-bottom: 8px; }
+.interview-contact-options { display: grid; gap: 8px; }
+.interview-contact-options label { display: flex; gap: 10px; align-items: center; min-height: 48px; padding: 12px 16px; border: 1px solid #c8a7ad; border-radius: var(--radius-md); cursor: pointer; transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }
+.interview-contact-options input { width: 18px; min-width: 18px; height: 18px; min-height: 18px; margin: 0; padding: 0; accent-color: #9c4555; }
+.interview-contact-options label:has(input:checked) { background: var(--bg-2); border-color: #9c4555; box-shadow: inset 0 0 0 1px #9c4555; }
+.interview-contact-options label:has(input[aria-invalid=true]) { border-color: #9c3044; }
+@media(prefers-reduced-motion:reduce) { .interview-contact-options label { transition: none; } }

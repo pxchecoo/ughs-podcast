@@ -29,7 +29,7 @@ try {
     await page.locator('#interview-submit').click();assert.match(await page.locator('#interview-error-full_name').textContent(),/nombre/);
     await page.locator('#interview-full_name').fill('Persona de prueba');await page.locator('#interview-email').fill('invalid');await page.locator('#interview-topic').fill('Historia escolar');await page.locator('#interview-motivation').fill('Quiero compartir una experiencia escolar.');
     await page.locator('#interview-submit').click();assert.match(await page.locator('#interview-error-email').textContent(),/correo/);assert.match(await page.locator('#interview-error-consent_contact').textContent(),/consentimiento/);
-    await page.locator('#interview-email').fill('example@example.test');await page.locator('#interview-consent_contact').check();
+    await page.locator('#interview-email').fill('example@example.test');await page.locator('[name=preferred_contact_method][value=email]').check();await page.locator('#interview-consent_contact').check();
     await page.locator('#interviews').screenshot({path:`artifacts/qa/form-${name}.png`});
     await page.locator('#interview-submit').dblclick();await page.waitForFunction(()=>document.getElementById('interview-submit').disabled===false);
     assert.equal(posts.length,1);assert.equal(await page.locator('#interview-full_name').inputValue(),'Persona de prueba');assert.equal(await page.locator('#interview-success').isVisible(),false);

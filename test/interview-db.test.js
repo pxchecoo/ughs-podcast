@@ -7,7 +7,7 @@ import { AppError, authorizeStaff, STAFF_COOKIE } from '../lib/interview-server.
 import { randomUUID } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 const mod='11111111-1111-4111-8111-111111111111', admin='22222222-2222-4222-8222-222222222222';
-const payload = { full_name:'Persona de prueba', email:'example@example.test', school_affiliation:'', topic:'Tema de prueba',motivation:'Una motivación de prueba.',previous_experience:null,consent_contact:true,consent_version:'2026-11-07.v1' };
+const payload = { full_name:'Persona de prueba', email:'example@example.test', phone_number:'+17875550123', preferred_contact_method:'phone', school_affiliation:'', topic:'Tema de prueba',motivation:'Una motivación de prueba.',previous_experience:null,consent_contact:true,consent_version:'2026-11-07.v1' };
 const hash='a'.repeat(64), ph='b'.repeat(64);
 test('isolated PostgreSQL migration, transactions, SQL permissions and retention', async t => {
   const db=new PGlite();
@@ -205,5 +205,39 @@ test('isolated PostgreSQL migration, transactions, SQL permissions and retention
       assert.equal((await db.query('select * from notification_outbox')).rows.length,0);
     });
     await db.exec(await readFile('supabase/tests/permissions.sql','utf8'));
+  } finally { await db.close(); }
+});
+
+test('contact migration preserves legacy rows and permissions; contact rules enforced in PostgreSQL', async () => {
+  const db = new PGlite();
+  try {
+    await db.exec('create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls; create schema auth; create table auth.users(id uuid primary key);');
+    const files = (await readdir('supabase/migrations')).filter(f => f.endsWith('.sql')).sort();
+    for (const file of files.filter(f => !f.includes('contact_preferences'))) await db.exec(await readFile(`supabase/migrations/${file}`, 'utf8'));
+    const legacy = {...payload}; delete legacy.phone_number; delete legacy.preferred_contact_method;
+    const legacyId = (await db.query('select uev_submit_interview($1,$2,$3) id', [JSON.stringify(legacy), hash, ph])).rows[0].id;
+    for (const file of files.filter(f => f.includes('contact_preferences'))) await db.exec(await readFile(`supabase/migrations/${file}`, 'utf8'));
+    const old = (await db.query('select * from interview_requests where id=$1', [legacyId])).rows[0];
+    assert.equal(old.phone_number, null); assert.equal(old.preferred_contact_method, null); assert.equal(old.email, legacy.email);
+    await db.query('insert into auth.users values($1)', [admin]);
+    await db.query("insert into interview_staff(user_id,role,can_export) values($1,'admin',true)", [admin]);
+    await db.exec('set role service_role');
+    // Legacy retries still succeed after migration, with the same payload hash.
+    assert.equal((await db.query('select uev_submit_interview($1,$2,$3) id', [JSON.stringify(legacy), hash, ph])).rows[0].id, legacyId);
+    for (const contact of [{phone_number:'+17875550123',preferred_contact_method:'phone'}, {phone_number:null,preferred_contact_method:'email'}, {phone_number:'+34612345678',preferred_contact_method:'email'}]) {
+      const id = (await db.query('select uev_submit_interview($1,$2,$3) id', [JSON.stringify({...payload,...contact}), randomUUID().replaceAll('-','').repeat(2), ph])).rows[0].id;
+      const exported = (await db.query('select uev_export_interview($1,$2) row', [admin, id])).rows[0].row;
+      assert.equal(exported.phone_number, contact.phone_number); assert.equal(exported.preferred_contact_method, contact.preferred_contact_method);
+    }
+    const count = (await db.query('select count(*)::int n from notification_outbox')).rows[0].n;
+    for (const bad of [{preferred_contact_method:'sms'}, {preferred_contact_method:null}, {phone_number:null}, {phone_number:'7875550123'}, {phone_number:'+11231231234'}, {phone_number:17875550123}]) {
+      await assert.rejects(db.query('select uev_submit_interview($1,$2,$3)', [JSON.stringify({...payload,...bad}), randomUUID().replaceAll('-','').repeat(2), ph]), e => ['22023','23514'].includes(e.code));
+    }
+    assert.equal((await db.query('select count(*)::int n from notification_outbox')).rows[0].n, count);
+    for (const role of ['anon','authenticated']) {
+      await db.exec(`set role ${role}`);
+      await assert.rejects(db.query('select phone_number,email,preferred_contact_method from interview_requests'), e => e.code === '42501');
+      await assert.rejects(db.query('select uev_submit_interview($1,$2,$3)', [JSON.stringify(payload),hash,ph]), e => e.code === '42501');
+    }
   } finally { await db.close(); }
 });

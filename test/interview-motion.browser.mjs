@@ -288,7 +288,7 @@ try {
     }
     await settled(p);
     await p.locator('#interview-submit').click(); await settled(p); assert.match(await p.locator('#interview-error-full_name').textContent(), /nombre/);
-    await p.locator('#interview-full_name').fill('Persona de prueba'); await p.locator('#interview-email').fill('example@example.test');
+    await p.locator('#interview-full_name').fill('Persona de prueba'); await p.locator('#interview-email').fill('example@example.test'); await p.locator('[name=preferred_contact_method][value=email]').check();
     await p.locator('#interview-topic').fill('Historia escolar'); await p.locator('#interview-motivation').fill('Una experiencia escolar que quiero compartir.'); await p.locator('#interview-consent_contact').check();
     pub.state.failSubmission = true; await p.locator('#interview-submit').dblclick(); await p.waitForFunction(() => !document.getElementById('interview-submit').disabled); await settled(p);
     assert.equal(pub.state.post, 1); assert.equal(await p.locator('#interview-success').isVisible(), false);
@@ -325,7 +325,7 @@ try {
             await page.goto(base); await page.locator('#interviews').waitFor({ state: 'visible' });
             if (surface !== 'closed') await page.locator('#interview-toggle').click();
             if (surface === 'success') {
-              await page.locator('#interview-full_name').fill('Persona de prueba'); await page.locator('#interview-email').fill('example@example.test');
+              await page.locator('#interview-full_name').fill('Persona de prueba'); await page.locator('#interview-email').fill('example@example.test'); await page.locator('[name=preferred_contact_method][value=email]').check();
               await page.locator('#interview-topic').fill('Historia escolar'); await page.locator('#interview-motivation').fill('Una experiencia escolar que quiero compartir.'); await page.locator('#interview-consent_contact').check();
               await page.locator('#interview-submit').click(); await page.locator('#interview-success').waitFor({ state: 'visible' });
             }

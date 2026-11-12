@@ -3,7 +3,7 @@ import { AppError, checkOrigin, readJSON, onlyKeys, database, persistentLimit, a
 import { deliverNotifications } from '../lib/interview-mail.js';
 import { UUID, STATUSES } from '../lib/interview-validation.js';
 const METHODS = 'GET, POST, PATCH, DELETE, OPTIONS';
-const DETAIL_COLUMNS = 'id,full_name,email,school_affiliation,topic,motivation,previous_experience,status,consent_contact,consent_version,consent_policy_reference,consent_accepted_at,reviewed_by,reviewed_at,internal_notes,revision,created_at,updated_at,deleted_at,deleted_by';
+const DETAIL_COLUMNS = 'id,full_name,email,phone_number,preferred_contact_method,school_affiliation,topic,motivation,previous_experience,status,consent_contact,consent_version,consent_policy_reference,consent_accepted_at,reviewed_by,reviewed_at,internal_notes,revision,created_at,updated_at,deleted_at,deleted_by';
 export function createInterviewAdminHandler({ db = database, limit = persistentLimit, authorize = authorizeStaff, deliver = deliverNotifications } = {}) {
   return { async fetch(request) {
     try {

@@ -34,7 +34,7 @@
       byId('interview-trash-view').setAttribute('aria-pressed', 'false');
       byId('interview-rows').replaceChildren(); byId('interview-detail').hidden = true;
       byId('interview-detail-data').replaceChildren(); byId('interview-detail-title').textContent = '';
-      byId('interview-notes').value = ''; byId('interview-contact').removeAttribute('href');
+      byId('interview-notes').value = ''; byId('interview-contact').removeAttribute('href'); byId('interview-call').removeAttribute('href');
       byId('interview-audit').textContent = ''; byId('notification-state').textContent = '';
       byId('health-state').textContent = 'Estado desconocido'; byId('health-details').textContent = '';
     }
@@ -109,12 +109,17 @@
         current = row; origin = trigger;
         byId('interview-detail-title').textContent = row.topic;
         const details = byId('interview-detail-data'); details.replaceChildren();
-        for (const [label,value] of [['Nombre',row.full_name],['Correo',row.email],['Relación con la escuela',row.school_affiliation || 'No indicada'],['Motivación',row.motivation],['Experiencia previa',row.previous_experience === null ? 'Prefiere no responder' : row.previous_experience ? 'Sí' : 'No'],['Recibida',dates(row.created_at)],['Consentimiento',`${row.consent_version} · ${dates(row.consent_accepted_at)}`]]) details.append(make('dt',label),make('dd',value));
+        for (const [label,value] of [['Nombre',row.full_name],['Correo',row.email || 'No especificado'],['Teléfono',row.phone_number || 'No especificado'],['Contacto preferido',({ phone: 'Llamada telefónica', email: 'Correo electrónico' })[row.preferred_contact_method] || 'No especificado'],['Relación con la escuela',row.school_affiliation || 'No indicada'],['Motivación',row.motivation],['Experiencia previa',row.previous_experience === null ? 'Prefiere no responder' : row.previous_experience ? 'Sí' : 'No'],['Recibida',dates(row.created_at)],['Consentimiento',`${row.consent_version} · ${dates(row.consent_accepted_at)}`]]) details.append(make('dt',label),make('dd',value));
         byId('interview-review-status').value = row.status; byId('interview-notes').value = row.internal_notes ?? '';
         byId('interview-contact').href = `mailto:${encodeURIComponent(row.email)}?subject=${encodeURIComponent('University en Vivo — Solicitud de entrevista')}`;
         const deleted = !!row.deleted_at;
         byId('interview-review-form').hidden = deleted;
-        byId('interview-contact').hidden = deleted;
+        byId('interview-contact').hidden = deleted || !row.email;
+        byId('interview-copy-email').hidden = deleted || !row.email;
+        byId('interview-call').hidden = deleted || !row.phone_number;
+        byId('interview-copy-phone').hidden = deleted || !row.phone_number;
+        byId('interview-call').removeAttribute('href');
+        if (row.phone_number) byId('interview-call').href = `tel:${row.phone_number}`;
         byId('interview-export').hidden = deleted || !staff.can_export;
         byId('interview-delete').hidden = deleted || !canDelete();
         byId('interview-restore').hidden = !deleted || !canDelete();
@@ -191,6 +196,13 @@
       }, { elements: [list], enter: [list] });
     } catch(e) { message(e.message); }
   });
+  for (const [id, field, confirmation] of [['interview-copy-email', 'email', 'Correo copiado.'], ['interview-copy-phone', 'phone_number', 'Teléfono copiado.']]) {
+    byId(id).addEventListener('click', async () => {
+      if (!staff || !current || current.deleted_at || !current[field]) return;
+      try { await navigator.clipboard.writeText(current[field]); if (staff && current) { message(confirmation, 'success'); motion.confirm(byId(id)); } }
+      catch { if (staff && current) message('No pudimos copiar. Selecciona el dato y cópialo manualmente.'); }
+    });
+  }
   byId('interview-export').addEventListener('click', async () => {
     if(!current || !confirm('¿Exportar esta solicitud con datos personales? Guárdala únicamente en un lugar institucional autorizado.')) return;
     try { const data=await api(`/api/interview-admin?action=export&id=${current.id}`,{method:'POST',body:JSON.stringify({confirm:true})});

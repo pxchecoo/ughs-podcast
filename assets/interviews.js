@@ -34,6 +34,12 @@ toggle.addEventListener('click', event => {
     if (open && keyboard && document.activeElement === toggle) form.elements.full_name.focus({ preventScroll: true });
   } });
 });
+form.addEventListener('change', event => {
+  if (event.target.name !== 'preferred_contact_method') return;
+  const required = form.elements.preferred_contact_method.value === 'phone';
+  form.elements.phone_number.required = required;
+  motion.text(document.getElementById('interview-phone-label'), `Número de teléfono (${required ? 'obligatorio' : 'opcional'})`, card);
+});
 form.addEventListener('submit', async event => {
   event.preventDefault(); if (busy) return;
   const values = Object.fromEntries(new FormData(form));
@@ -49,7 +55,7 @@ form.addEventListener('submit', async event => {
       for (const [field, message] of Object.entries(errorFields)) {
         const error = form.querySelector(`[data-error="${field}"]`);
         if (error) error.textContent = message;
-        form.elements.namedItem(field)?.setAttribute?.('aria-invalid', 'true');
+        form.querySelectorAll(`[name="${field}"]`).forEach(el => el.setAttribute('aria-invalid', 'true'));
       }
     }, { elements: [...fields, status, button] });
     for (const [el, value] of previous) if (value !== el.textContent) motion.animate(el, [

@@ -10,7 +10,7 @@ import { createMaintenanceHandler } from '../api/interview-maintenance.js';
 import { deliverNotifications, sendMail } from '../lib/interview-mail.js';
 process.env.SUBMISSION_HASH_SECRET='test-only-secret-never-used-outside-tests-32';
 process.env.ADMIN_URL='https://admin.example.test';process.env.RESEND_API_KEY='test-mock-only';process.env.NOTIFICATION_EMAIL_FROM='notices@example.test';process.env.NOTIFICATION_EMAIL_TO='team@example.test';
-const valid=()=>({full_name:'  Persona de prueba  ',email:'USER@EXAMPLE.TEST',school_affiliation:'',topic:'Historia escolar',motivation:'Quiero compartir mi experiencia.',previous_experience:null,consent_contact:true,consent_version:CONSENT_VERSION,submission_key:randomUUID(),website:''});
+const valid=()=>({full_name:'  Persona de prueba  ',email:'USER@EXAMPLE.TEST',phone_number:'',preferred_contact_method:'email',school_affiliation:'',topic:'Historia escolar',motivation:'Quiero compartir mi experiencia.',previous_experience:null,consent_contact:true,consent_version:CONSENT_VERSION,submission_key:randomUUID(),website:''});
 const origin='https://ughs-podcast.vercel.app';
 function req(path='/api/interview-requests', method='POST', data=valid(), extra={}) { return new Request(`${origin}${path}`,{method,headers:{Origin:origin,'Content-Type':'application/json',...extra},...(!['GET','OPTIONS'].includes(method)?{body:JSON.stringify(data)}:{})}); }
 const noLimit=async()=>{};
@@ -133,4 +133,26 @@ test('real authorization rejects missing delete/purge grants and moderator, incl
   assert.equal((await handler.fetch(req(`/api/interview-admin?id=${id}&action=purge`,'DELETE',{revision:1,confirmation:'ELIMINAR PERMANENTEMENTE'},cookie))).status,403);
   row.can_purge=true;
   assert.equal((await handler.fetch(req(`/api/interview-admin?id=${id}&action=purge`,'DELETE',{revision:1,confirmation:'ELIMINAR PERMANENTEMENTE'},cookie))).status,200);
+});
+
+test('contact validation requires choice, phone only for calls, normalizes and validates optional phones', () => {
+  for (const method of [undefined, null, '', 'sms', 1]) assert.equal(validateSubmission({...valid(), preferred_contact_method:method}).valid, false);
+  for (const phone of ['', '+1 ', null]) {
+    assert.equal(validateSubmission({...valid(), phone_number:phone}).valid, true);
+    assert.equal(validateSubmission({...valid(), preferred_contact_method:'phone', phone_number:phone}).valid, false);
+  }
+  for (const phone of ['7875550123', '(787) 555-0123', '+1 (787) 555-0123', '17875550123']) {
+    const result = validateSubmission({...valid(), preferred_contact_method:'phone', phone_number:phone});
+    assert.equal(result.valid, true); assert.equal(result.data.phone_number, '+17875550123');
+  }
+  assert.equal(validateSubmission({...valid(), phone_number:'+34 612 345 678'}).data.phone_number, '+34612345678');
+  for (const phone of ['555', '+1 123 123 1234', '+1 787 555 012', '+1234567890123456', '7875550123 ext 2', '+1+7875550123', {}, 7875550123]) assert.equal(validateSubmission({...valid(), phone_number:phone}).valid, false);
+});
+test('HTTP rejects missing contact method/phone before persistence and retains both contact fields', async () => {
+  let saved;
+  const handler = createInterviewHandler({enabled:()=>true, limit:noLimit, db:{rpc:async(_name,args)=>{saved=args.p_data;return randomUUID();}}, deliver:async()=>{}, background:()=>{}});
+  for (const patch of [{preferred_contact_method:''}, {preferred_contact_method:'phone',phone_number:''}, {phone_number:'abc'}]) assert.equal((await handler.fetch(req(undefined,'POST',{...valid(),...patch}))).status,400);
+  assert.equal(saved, undefined);
+  assert.equal((await handler.fetch(req(undefined,'POST',{...valid(),preferred_contact_method:'phone',phone_number:'(939) 555-0123'}))).status,200);
+  assert.equal(saved.phone_number,'+19395550123'); assert.equal(saved.preferred_contact_method,'phone'); assert.equal(saved.email,'user@example.test');
 });

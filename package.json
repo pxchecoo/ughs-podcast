@@ -11,6 +11,7 @@
     "test": "node --test test/*.test.js",
     "dev": "node scripts/dev.mjs",
     "test:e2e": "node test/browser.mjs",
+    "test:contact": "node test/interview-contact.browser.mjs",
     "test:motion": "node test/interview-motion.browser.mjs",
     "test:corrections": "node test/interview-corrections.browser.mjs",
     "build": "node scripts/build.mjs"
