@@ -1963,8 +1963,19 @@
 // EASTER EGG 2 — Konami Code → confeti
 const konamiCode = ['u','n','i','v','e','r','s','i','t','y'];
 let konamiIndex = 0;
+const adminCode = ['a','d','m','i','n'];
+let adminIndex = 0;
 
-document.addEventListener('keydown', (e) => {
+function handleEasterEggKeydown(e) {
+  if (e.target instanceof Element && (
+    e.target.closest('form, input, textarea, select, [role="textbox"]') ||
+    e.target.isContentEditable
+  ) || e.isComposing || e.ctrlKey || e.metaKey || e.altKey) {
+    konamiIndex = 0;
+    adminIndex = 0;
+    return;
+  }
+
   if (e.key === konamiCode[konamiIndex]) {
     konamiIndex++;
     if (konamiIndex === konamiCode.length) {
@@ -1974,7 +1985,27 @@ document.addEventListener('keydown', (e) => {
   } else {
     konamiIndex = 0;
   }
+
+  const key = e.key.toLowerCase();
+  adminIndex = key === adminCode[adminIndex] ? adminIndex + 1 : (key === adminCode[0] ? 1 : 0);
+  if (adminIndex === adminCode.length) {
+    adminIndex = 0;
+    window.location.assign('/admin');
+  }
+}
+
+function attachEasterEggListener() {
+  document.addEventListener('keydown', handleEasterEggKeydown);
+}
+
+window.addEventListener('pagehide', () => {
+  document.removeEventListener('keydown', handleEasterEggKeydown);
+  konamiIndex = 0;
+  adminIndex = 0;
 });
+// Restore the listener when returning through the browser's back/forward cache.
+window.addEventListener('pageshow', attachEasterEggListener);
+attachEasterEggListener();
 
 function lanzarConfeti() {
   const colores = ['#378add', '#85b7eb', '#e98e98', '#f3b2b7', '#fff'];
