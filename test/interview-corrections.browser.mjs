@@ -28,15 +28,12 @@ try {
       return route.continue();
     });
     await page.goto(base); await page.locator('#interviews').waitFor({ state: 'visible' });
-    assert.equal(await page.locator('#dockBadge, .dock .dock-badge').count(), 0);
+    assert.equal(await page.locator('.dock, #dockTitle, #dockMeta, #dockPlayBtn, #dockProgress').count(), 0);
+    assert.equal(await page.locator('.site').evaluate(el => getComputedStyle(el).paddingBottom), '0px');
     assert.equal(await page.locator('#mainIcon svg').count(), 1);
-    assert.equal(await page.locator('#dockTitle').textContent(), 'Así empezó todo…');
-    assert.equal(await page.locator('.dock-copy').evaluate(el => Math.abs(el.getBoundingClientRect().left - (el.parentElement.getBoundingClientRect().left + parseFloat(getComputedStyle(el.parentElement).paddingLeft) + 1)) < 1), true);
-    assert.equal(await page.locator('#dockTitle').evaluate(el => el.scrollWidth <= el.clientWidth), true);
-    assert.equal(await page.locator('#dockMeta').evaluate(el => el.scrollWidth <= el.clientWidth), true);
     await page.evaluate(() => { window.playerLinks = []; window.open = url => { window.playerLinks.push(url); return null; }; });
-    await page.locator('#dockPlayBtn').click(); await page.locator('#heroPlayBtn').click();
-    assert.deepEqual(await page.evaluate(() => window.playerLinks), ['https://www.youtube.com', 'https://www.youtube.com']);
+    await page.locator('#heroPlayBtn').click();
+    assert.deepEqual(await page.evaluate(() => window.playerLinks), ['https://www.youtube.com']);
     await page.evaluate(async source => {
       const audio = document.getElementById('mainAudio'); audio.src = source; audio.load();
       await new Promise((resolve, reject) => { audio.addEventListener('loadedmetadata', resolve, { once: true }); audio.addEventListener('error', reject, { once: true }); });
@@ -44,13 +41,13 @@ try {
       await new Promise(resolve => { audio.addEventListener('seeked', resolve, { once: true }); audio.currentTime = 2; });
       audio.dispatchEvent(new Event('timeupdate'));
     }, `data:audio/wav;base64,${wav.toString('base64')}`);
-    const media = await page.evaluate(() => ({time: mainAudio.currentTime, duration: mainAudio.duration, progress: document.getElementById('dockProgress').style.width}));
+    const media = await page.evaluate(() => ({time: mainAudio.currentTime, duration: mainAudio.duration, progress: document.getElementById('heroProgressFill').style.width}));
     assert.ok(Math.abs(parseFloat(media.progress) - 25) < 1, JSON.stringify(media));
-    assert.match(await page.locator('#dockPlayIcon').innerHTML(), /M8 5h3/);
+    assert.match(await page.locator('#heroPlayIcon').innerHTML(), /M8 5h3/);
     await page.evaluate(() => document.getElementById('mainAudio').pause());
-    assert.match(await page.locator('#dockPlayIcon').innerHTML(), /M8 5.5/);
+    assert.match(await page.locator('#heroPlayIcon').innerHTML(), /M8 5.5/);
     await page.locator('.episode-card').nth(1).click();
-    assert.equal(await page.locator('#dockTitle').textContent(), await page.locator('.episode-card').nth(1).getAttribute('data-title'));
+    assert.equal(await page.locator('#mainTitle').textContent(), await page.locator('.episode-card').nth(1).getAttribute('data-title'));
     assert.equal(await page.locator('#mainIcon svg').count(), 1);
     await page.locator('#interview-toggle').scrollIntoViewIfNeeded(); await page.waitForTimeout(700);
     // Real pointer activation: no field focus and no keyboard-triggering autofocus.
@@ -98,9 +95,9 @@ try {
     }
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.deepEqual(errors, []);
-    if (engine === 'chromium') { await page.locator('#interviews').screenshot({ path: `${output}/form-${width}-${reduced}.png` }); await page.locator('.dock').screenshot({ path: `${output}/player-${width}-${reduced}.png` }); }
+    if (engine === 'chromium') { await page.locator('#interviews').screenshot({ path: `${output}/form-${width}-${reduced}.png` }); await page.locator('.player-shell').screenshot({ path: `${output}/player-${width}-${reduced}.png` }); }
     report.push({ width, reduced, scrollSpread: spread('scrollY'), fieldSpread: spread('fieldTop'), samples });
-    console.log(`PASS ${engine} ${width}px reduced=${reduced}: stable flow, reversal, focus, resize, values, player layout, links and real local audio`);
+    console.log(`PASS ${engine} ${width}px reduced=${reduced}: stable flow, reversal, focus, resize, values, dock removed, hero links and real local audio`);
     await page.close();
   }
   await writeFile(`${output}/measurements.json`, JSON.stringify(report, null, 2));

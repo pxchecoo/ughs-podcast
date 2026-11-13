@@ -228,7 +228,6 @@
       z-index: 1;
       width: min(1180px, calc(100% - 28px));
       margin: 0 auto;
-      padding-bottom: 120px;
     }
 
     .nav {
@@ -1155,108 +1154,6 @@
       box-shadow: 0 20px 40px rgba(184, 92, 104, .14);
     }
 
-    .dock {
-      position: fixed;
-      left: 50%;
-      bottom: 18px;
-      transform: translateX(-50%);
-      z-index: 40;
-      width: min(760px, calc(100% - 28px));
-      border-radius: 28px;
-      border: 1px solid rgba(255,255,255,.86);
-      background: rgba(255,255,255,.76);
-      box-shadow: 0 28px 70px rgba(184, 92, 104, .18);
-      backdrop-filter: blur(22px);
-      -webkit-backdrop-filter: blur(22px);
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      transition: transform .7s var(--ease), box-shadow .7s var(--ease), opacity .7s var(--ease);
-    }
-
-    .dock:hover {
-      transform: translateX(-50%) translateY(-2px);
-      box-shadow: 0 34px 80px rgba(184, 92, 104, .22);
-    }
-
-    .dock-badge {
-      width: 52px;
-      height: 52px;
-      flex-shrink: 0;
-      border-radius: 18px;
-      background: linear-gradient(135deg, rgba(243,178,183,.8), rgba(255,255,255,.85));
-      border: 1px solid rgba(255,255,255,.86);
-      display: grid;
-      place-items: center;
-      color: #b56670;
-      box-shadow: 0 12px 30px rgba(184, 92, 104, .1);
-    }
-
-    .dock-badge svg { width: 24px; height: 24px; }
-
-    .dock-copy {
-      min-width: 0;
-      flex: 1;
-    }
-
-    .dock-copy strong,
-    .dock-copy span {
-      display: block;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .dock-copy strong {
-      font-size: .98rem;
-      letter-spacing: -.03em;
-    }
-
-    .dock-copy span {
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: .88rem;
-    }
-
-    .dock-controls {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 210px;
-    }
-
-    .dock-line {
-      flex: 1;
-      height: 6px;
-      border-radius: 999px;
-      background: rgba(233, 142, 152, .12);
-      overflow: hidden;
-      position: relative;
-    }
-
-    .dock-line > div {
-      position: absolute;
-      inset: 0 auto 0 0;
-      width: 0%;
-      border-radius: inherit;
-      background: linear-gradient(90deg, #e2828d, #f2afb5);
-      transition: width .2s linear;
-    }
-
-    .dock-toggle {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      border: 0;
-      display: grid;
-      place-items: center;
-      background: linear-gradient(180deg, #ef9aa3, #e38690);
-      color: white;
-      box-shadow: 0 16px 30px rgba(227, 134, 144, .28);
-      cursor: pointer;
-    }
-
     footer {
       padding: 34px 0 10px;
       text-align: center;
@@ -1329,21 +1226,6 @@
       .about-grid { grid-template-columns: 1fr; }
       .contact-card { padding: 20px; }
       .social { width: 100%; min-width: 0; }
-      .dock {
-        width: calc(100% - 14px);
-        bottom: 10px;
-        padding: 12px;
-        gap: 10px;
-      }
-      .dock-copy strong { font-size: .92rem; }
-      .dock-controls { min-width: 0; width: 100%; }
-      .dock {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-      }
-      .dock-controls {
-        grid-column: 1 / -1;
-      }
 
 .about-layout {
         grid-template-columns: 1fr !important;
@@ -1710,19 +1592,6 @@
     </footer>
   </div>
 
-  <div class="dock" aria-label="Reproductor inferior">
-    <div class="dock-copy">
-      <strong id="dockTitle">Así empezó todo…</strong>
-      <span id="dockMeta">Vida escolar · tema inicial</span>
-    </div>
-    <div class="dock-controls">
-      <div class="dock-line"><div id="dockProgress"></div></div>
-      <button class="dock-toggle" id="dockPlayBtn" aria-label="Reproducir o pausar">
-        <svg id="dockPlayIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10-6.5-10-6.5z"></path></svg>
-      </button>
-    </div>
-  </div>
-
   <audio id="mainAudio">
     <source src="https://samplelib.com/lib/preview/mp3/sample-3s.mp3" type="audio/mpeg" />
   </audio>
@@ -1756,17 +1625,12 @@
     const mainTag = document.getElementById('mainTag');
     const mainDesc = document.getElementById('mainDesc');
     const mainMeta = document.getElementById('mainMeta');
-    const dockTitle = document.getElementById('dockTitle');
-    const dockMeta = document.getElementById('dockMeta');
 
     const heroPlayBtn = document.getElementById('heroPlayBtn');
     const heroPlayIcon = document.getElementById('heroPlayIcon');
-    const dockPlayBtn = document.getElementById('dockPlayBtn');
-    const dockPlayIcon = document.getElementById('dockPlayIcon');
 
     const heroProgressBar = document.getElementById('heroProgressBar');
     const heroProgressFill = document.getElementById('heroProgressFill');
-    const dockProgress = document.getElementById('dockProgress');
     const currentTimeEl = document.getElementById('currentTime');
     const durationTimeEl = document.getElementById('durationTime');
 
@@ -1784,10 +1648,6 @@
 
     function setPlayIcon(playing) {
       heroPlayIcon.innerHTML = playing
-        ? '<path d="M8 5h3v14H8zM13 5h3v14h-3z"></path>'
-        : '<path d="M8 5.5v13l10-6.5-10-6.5z"></path>';
-
-      dockPlayIcon.innerHTML = playing
         ? '<path d="M8 5h3v14H8zM13 5h3v14h-3z"></path>'
         : '<path d="M8 5.5v13l10-6.5-10-6.5z"></path>';
     }
@@ -1811,8 +1671,6 @@
       mainTag.textContent = card.dataset.tag;
       mainDesc.textContent = card.dataset.desc;
       mainMeta.textContent = `${card.dataset.title} · tema inicial`; 
-      dockTitle.textContent = card.dataset.title;
-      dockMeta.textContent = `${card.dataset.tag} · tema inicial`; 
 
       const iconMarkup = icons[card.dataset.icon] || icons.mic;
       mainIcon.innerHTML = iconMarkup;
@@ -1820,7 +1678,6 @@
       audio.src = card.dataset.audio;
       audio.load();
       heroProgressFill.style.width = '0%';
-      dockProgress.style.width = '0%';
       currentTimeEl.textContent = '0:00';
       durationTimeEl.textContent = '0:00';
 
@@ -1876,11 +1733,6 @@
   const url = activeCard?.dataset.youtube;
   if (url) window.open(url, '_blank');
 });
-    dockPlayBtn.addEventListener('click', () => {
-  const activeCard = cards.find(c => c.dataset.id === activeId);
-  const url = activeCard?.dataset.youtube;
-  if (url) window.open(url, '_blank');
-});
 
     audio.addEventListener('loadedmetadata', () => {
       durationTimeEl.textContent = formatTime(audio.duration);
@@ -1889,7 +1741,6 @@
     audio.addEventListener('timeupdate', () => {
       const progress = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
       heroProgressFill.style.width = `${progress}%`;
-      dockProgress.style.width = `${progress}%`;
       currentTimeEl.textContent = formatTime(audio.currentTime);
       durationTimeEl.textContent = formatTime(audio.duration);
     });
