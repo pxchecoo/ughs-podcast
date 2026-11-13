@@ -1,0 +1,9 @@
+/* Font Awesome Free 6.7.2 — https://fontawesome.com — see fontawesome-LICENSE.txt.
+   Only the two requested glyphs are enabled; original WOFF2 fonts are unmodified. */
+@font-face { font-family: 'Font Awesome 6 Free'; font-style: normal; font-weight: 900; font-display: block; src: url('./fa-solid-900.woff2') format('woff2'); unicode-range: U+F095; }
+@font-face { font-family: 'Font Awesome 6 Free'; font-style: normal; font-weight: 400; font-display: block; src: url('./fa-regular-400.woff2') format('woff2'); unicode-range: U+F0E0; }
+.interview-contact-options .fa-solid, .interview-contact-options .fa-regular { display: inline-block; font-family: 'Font Awesome 6 Free'; font-style: normal; font-variant: normal; line-height: 1; text-rendering: auto; -webkit-font-smoothing: antialiased; }
+.interview-contact-options .fa-solid { font-weight: 900; }
+.interview-contact-options .fa-regular { font-weight: 400; }
+.interview-contact-options .fa-phone::before { content: '\f095'; }
+.interview-contact-options .fa-envelope::before { content: '\f0e0'; }

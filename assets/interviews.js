@@ -36,7 +36,8 @@ toggle.addEventListener('click', event => {
 });
 form.addEventListener('change', event => {
   if (event.target.name !== 'preferred_contact_method') return;
-  const required = form.elements.preferred_contact_method.value === 'phone';
+  const required = ['phone', 'both'].includes(form.elements.preferred_contact_method.value);
+  motion.animate(event.target.closest('label'), [{ transform: 'scale(.98)' }, { transform: 'scale(1)' }], { duration: 220, channel: 'contact-selection' });
   form.elements.phone_number.required = required;
   motion.text(document.getElementById('interview-phone-label'), `Número de teléfono (${required ? 'obligatorio' : 'opcional'})`, card);
 });

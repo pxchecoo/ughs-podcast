@@ -139,7 +139,7 @@ test('contact validation requires choice, phone only for calls, normalizes and v
   for (const method of [undefined, null, '', 'sms', 1]) assert.equal(validateSubmission({...valid(), preferred_contact_method:method}).valid, false);
   for (const phone of ['', '+1 ', null]) {
     assert.equal(validateSubmission({...valid(), phone_number:phone}).valid, true);
-    assert.equal(validateSubmission({...valid(), preferred_contact_method:'phone', phone_number:phone}).valid, false);
+    for (const method of ['phone','both']) assert.equal(validateSubmission({...valid(), preferred_contact_method:method, phone_number:phone}).valid, false);
   }
   for (const phone of ['7875550123', '(787) 555-0123', '+1 (787) 555-0123', '17875550123']) {
     const result = validateSubmission({...valid(), preferred_contact_method:'phone', phone_number:phone});
@@ -151,8 +151,10 @@ test('contact validation requires choice, phone only for calls, normalizes and v
 test('HTTP rejects missing contact method/phone before persistence and retains both contact fields', async () => {
   let saved;
   const handler = createInterviewHandler({enabled:()=>true, limit:noLimit, db:{rpc:async(_name,args)=>{saved=args.p_data;return randomUUID();}}, deliver:async()=>{}, background:()=>{}});
-  for (const patch of [{preferred_contact_method:''}, {preferred_contact_method:'phone',phone_number:''}, {phone_number:'abc'}]) assert.equal((await handler.fetch(req(undefined,'POST',{...valid(),...patch}))).status,400);
+  for (const patch of [{preferred_contact_method:''}, {preferred_contact_method:'phone',phone_number:''}, {preferred_contact_method:'both',phone_number:''}, {preferred_contact_method:'both',phone_number:'+17875550123',email:''}, {phone_number:'abc'}]) assert.equal((await handler.fetch(req(undefined,'POST',{...valid(),...patch}))).status,400);
   assert.equal(saved, undefined);
-  assert.equal((await handler.fetch(req(undefined,'POST',{...valid(),preferred_contact_method:'phone',phone_number:'(939) 555-0123'}))).status,200);
-  assert.equal(saved.phone_number,'+19395550123'); assert.equal(saved.preferred_contact_method,'phone'); assert.equal(saved.email,'user@example.test');
+  for (const method of ['phone','both']) {
+    assert.equal((await handler.fetch(req(undefined,'POST',{...valid(),preferred_contact_method:method,phone_number:'(939) 555-0123'}))).status,200);
+    assert.equal(saved.phone_number,'+19395550123'); assert.equal(saved.preferred_contact_method,method); assert.equal(saved.email,'user@example.test');
+  }
 });
